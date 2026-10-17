@@ -8,6 +8,8 @@
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "format": "prettier --write \"**/*.{css,html,js,json,md,mjs,svelte,ts}\"",
+    "format:check": "prettier --check \"**/*.{css,html,js,json,md,mjs,svelte,ts}\"",
     "benchmark": "node scripts/benchmark.mjs",
     "build": "vite build"
   },
@@ -22,6 +24,8 @@
     "@playwright/test": "1.64.1",
     "@sveltejs/vite-plugin-svelte": "7.3.1",
     "@types/node": "26.6.5",
+    "prettier": "^3.9.10",
+    "prettier-plugin-svelte": "^4.1.1",
     "svelte-check": "4.7.7",
     "typescript": "6.0.3",
     "vite": "8.3.4",

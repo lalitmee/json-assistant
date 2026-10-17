@@ -1,44 +1,112 @@
 :root {
   color-scheme: light dark;
-  font: 16px/1.5 system-ui, sans-serif;
+  font:
+    16px/1.5 system-ui,
+    sans-serif;
   color: CanvasText;
   background: Canvas;
 }
 
-* { box-sizing: border-box; }
-body { margin: 0; }
-main { max-width: 1440px; margin: 0 auto; padding: 1rem; }
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+main {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 1rem;
+}
 button {
-  margin: 0 .35rem .5rem 0;
-  padding: .45rem .7rem;
+  margin: 0 0.35rem 0.5rem 0;
+  padding: 0.45rem 0.7rem;
   color: CanvasText;
   background: Canvas;
   border: 1px solid GrayText;
-  border-radius: .25rem;
+  border-radius: 0.25rem;
 }
-button[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: 1px; }
-:focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
-nav { display: flex; gap: .25rem; }
-.panes { display: grid; grid-template-columns: minmax(0, var(--split)) 12px minmax(0, 1fr); gap: .5rem; }
-.panes [aria-label="Source pane"] { grid-column: 1; grid-row: 1; }
-.panes [aria-label="Tree pane"] { grid-column: 3; grid-row: 1; }
-.panes .divider { grid-column: 2; grid-row: 1; }
-.panes[data-view="code"], .panes[data-view="tree"] { grid-template-columns: minmax(0, 1fr); }
-.panes[data-view="code"] [aria-label="Source pane"], .panes[data-view="tree"] [aria-label="Tree pane"] { grid-column: 1; }
-.panes section { min-width: 0; height: 65vh; display: flex; flex-direction: column; }
-.panes section[hidden] { display: none; }
-.divider { cursor: col-resize; touch-action: none; border-radius: .25rem; }
-.divider:hover, .divider:focus-visible { background: Highlight; }
-pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+button[aria-pressed="true"] {
+  outline: 2px solid Highlight;
+  outline-offset: 1px;
+}
+:focus-visible {
+  outline: 3px solid Highlight;
+  outline-offset: 2px;
+}
+nav {
+  display: flex;
+  gap: 0.25rem;
+}
+.panes {
+  display: grid;
+  grid-template-columns: minmax(0, var(--split)) 12px minmax(0, 1fr);
+  gap: 0.5rem;
+}
+.panes [aria-label="Source pane"] {
+  grid-column: 1;
+  grid-row: 1;
+}
+.panes [aria-label="Tree pane"] {
+  grid-column: 3;
+  grid-row: 1;
+}
+.panes .divider {
+  grid-column: 2;
+  grid-row: 1;
+}
+.panes[data-view="code"],
+.panes[data-view="tree"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+.panes[data-view="code"] [aria-label="Source pane"],
+.panes[data-view="tree"] [aria-label="Tree pane"] {
+  grid-column: 1;
+}
+.panes section {
+  min-width: 0;
+  height: 65vh;
+  display: flex;
+  flex-direction: column;
+}
+.panes section[hidden] {
+  display: none;
+}
+.divider {
+  cursor: col-resize;
+  touch-action: none;
+  border-radius: 0.25rem;
+}
+.divider:hover,
+.divider:focus-visible {
+  background: Highlight;
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 @media (max-width: 700px) {
-  .panes[data-view="split"] { grid-template-columns: minmax(0, 1fr); }
-  .panes[data-view="split"] .divider { display: none; }
-  .panes[data-view="split"] section { height: 55vh; }
-  .panes[data-view="split"] section { grid-column: 1; grid-row: auto; }
+  .panes[data-view="split"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .panes[data-view="split"] .divider {
+    display: none;
+  }
+  .panes[data-view="split"] section {
+    height: 55vh;
+  }
+  .panes[data-view="split"] section {
+    grid-column: 1;
+    grid-row: auto;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
-  :root { color-scheme: dark; --editor-background: #1e1e1e; --editor-foreground: #d4d4d4; }
+  :root {
+    color-scheme: dark;
+    --editor-background: #1e1e1e;
+    --editor-foreground: #d4d4d4;
+  }
   .panes {
     --jse-theme: dark;
     --jse-background-color: var(--editor-background);
@@ -52,6 +120,13 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 }
 
 @media (prefers-color-scheme: light) {
-  :root { --editor-background: #fff; --editor-foreground: #222; }
-  .panes { --jse-theme: light; --jse-background-color: var(--editor-background); --jse-text-color: var(--editor-foreground); }
+  :root {
+    --editor-background: #fff;
+    --editor-foreground: #222;
+  }
+  .panes {
+    --jse-theme: light;
+    --jse-background-color: var(--editor-background);
+    --jse-text-color: var(--editor-foreground);
+  }
 }
