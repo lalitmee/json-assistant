@@ -2,7 +2,7 @@
 
 Date: 2026-10-17
 
-Status: Written specification approved by the user on 2026-10-17. Implementation requires plan review and an execution-method choice.
+Status: Revised specification pending user review. The user approved semantic-value fidelity instead of exact text-token fidelity for tree edits on 2026-10-17. Implementation requires approval of this revision and the updated plan.
 
 ## Objective and agreed intent
 
@@ -42,13 +42,13 @@ These are responsibilities, not a requirement for separate files or a plugin fra
 
 Source text is authoritative. Keep the exact current draft even when it is incomplete or invalid. Associate asynchronous results with the source revision and ignore results for superseded revisions.
 
-For valid input, source edits update the tree after processing. Tree edits produce an explicit document transaction and update the source. Retain unchanged value tokens and do not silently normalize numeric values. Source reformatting caused by structured edits is acceptable; silent value changes are not.
+For valid input, source edits update the tree after processing. Tree edits produce an explicit document transaction and update the source. A tree edit may normalize whitespace, string escape spelling, and object-member order. Apply only the requested operation; all values outside the operation's affected path must remain identical, including large integers, high-precision decimals, exponent-form numbers, and negative zero. Use lossless numeric handling rather than JavaScript `Number` for synchronization. Source text stays exact until an edit or explicit formatting action changes it. Invalid drafts remain exact in source mode.
 
 While source is invalid, disable tree editing and display a visible stale/unavailable label. A last-valid tree may remain visible only with that label; it must not claim to represent the current draft. Source errors include a location and a useful explanation. No automatic repair occurs.
 
 Undo/redo spans source edits, tree edits, formatting, and minification in chronological order. Each explicit formatting/minification action is one undoable transaction. View switching must not reset history or content. Preserve selected field and source cursor position where the view can represent them; after a field is deleted, move selection to a surviving parent rather than a nonexistent path.
 
-If shared history or lossless structured editing cannot be achieved reliably with the chosen component, stop at the integration gate and revise the design with the user. Do not silently ship inconsistent histories or substitute a bespoke editor.
+If shared history or semantic-value-preserving structured editing cannot be achieved reliably with the chosen component, stop at the integration gate and revise the design with the user. Do not silently ship inconsistent histories or substitute a bespoke editor. Exact preservation of untouched token spelling and member order across tree edits is not a release requirement.
 
 ## Workspace and controls
 
@@ -60,7 +60,7 @@ Provide a three-way segmented selector:
 
 Default to Split when the workspace is at least 900 CSS pixels wide and Code otherwise. Resizing does not repeatedly override an explicit user selection. For a narrow viewport in Split mode, stack panes rather than requiring a minimum desktop width. Layout choices stay in memory for the current visit; do not persist them automatically.
 
-The toolbar exposes Open file, Format, Minify, Undo, Redo, Copy JSON, and Download. View-specific controls expose source search and tree key/value search. Tree search covers collapsed branches; choosing a match reveals its ancestors. Highlight selected paths and provide Copy path and Copy subtree. Use an escaped JSONPath-style field path; keys containing punctuation must not produce an ambiguous path.
+The toolbar exposes Open file, Format, Minify, Undo, Redo, Copy JSON, and Download. View-specific controls expose source search and tree key/value search. Tree search covers collapsed branches; choosing a match reveals its ancestors. Highlight selected paths and provide Copy path and Copy subtree. Use an escaped JSONPath-style field path; keys containing punctuation must not produce an ambiguous path. Copy subtree exports the selected current value; after a tree edit, its whitespace and escape spelling need not match the original source.
 
 Status displays validity, UTF-8 document size, unsaved changes, and any inspection-only or processing state. State explicitly that processing is local and documents are not automatically saved between visits. Provide light/dark styling following system preference, readable focus indicators, labeled controls, and keyboard-operable navigation and resizing.
 
@@ -74,7 +74,7 @@ Format and Minify are explicit actions on syntactically valid input. They change
 
 Detect duplicate object keys before structured editing can collapse them. Preserve their original source, show a warning, and disable tree editing and subtree export for the ambiguous document. Source copy/download remains available. Source-only whitespace formatting may remain available only if it demonstrably preserves every member. Never present a collapsed, last-key-wins tree as a faithful representation.
 
-Tests must cover integers beyond JavaScript's safe integer range, high-precision decimals, exponent notation, negative zero, escaped strings, Unicode, empty collections, all root types, and repeated object keys. Protect value fidelity across editing, view switching, formatting, and export. Render payload text as text, never executable HTML; do not automatically load URLs contained in values.
+Tests must cover integers beyond JavaScript's safe integer range, high-precision decimals, exponent notation, negative zero, escaped strings, Unicode, empty collections, all root types, and repeated object keys. Tree-edit tests compare JSON values with lossless numeric semantics: changing one path must not alter any other value, even when serialization changes token spelling or object-member order. Separate tests verify that Format and Minify preserve value tokens and member order. Protect value fidelity across editing, view switching, formatting, and export. Render payload text as text, never executable HTML; do not automatically load URLs contained in values.
 
 ## Large payloads and cancellation
 
@@ -100,13 +100,13 @@ Offline installation and persistent document recovery are not release-1 promises
 
 ## Verification and release gates
 
-Before building the full shell, verify the existing-editor integration with two views: synchronization, shared undo, selection retention, lossless numbers, duplicate-key handling, invalid drafts, and cancellation boundaries. This is planned implementation validation, not permission to implement before the plan is approved.
+Before building the full shell, verify the existing-editor integration with two views: synchronization, shared undo, selection retention, semantic preservation of untouched values (including lossless numbers), duplicate-key handling, invalid drafts, and cancellation boundaries. A tree edit may normalize whitespace, escape spelling, or object-member order; these representation changes are not failures if all unaffected values remain semantically identical. This is planned implementation validation, not permission to implement before the revised plan is approved.
 
 Keep focused automated checks for document transitions and a browser-level test of the complete paste/open, inspect/search, edit, format, switch-view, undo, and export loop. Include adversarial payloads, worker failure, stale results, cancelled file loads, and clipboard rejection. Unit tests alone do not establish a functional editor integration.
 
 Check keyboard access, focus visibility, accessible names, narrow layouts, and divider operation. Test current stable Chromium and Firefox and record any browser-specific limitations. Verify network activity during representative workflows: document contents must never be transmitted and third-party resources must not load.
 
-The release is not ready if it silently changes values, loses source on an error, mislabels a stale tree, resets undo on view changes, or transmits payloads. Document measured performance and inspection-only limitations with the release.
+The release is not ready if it changes an unintended value, loses source on an error, mislabels a stale tree, resets undo on view changes, or transmits payloads. Representation changes after a tree edit are allowed as stated above. Document measured performance and inspection-only limitations with the release.
 
 ## References and approval boundary
 
