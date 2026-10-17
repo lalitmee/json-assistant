@@ -29,6 +29,8 @@
   export let onHistory: (direction: "undo" | "redo") => void;
   export let onCopyPath: (path: string) => void;
   export let onCopySubtree: (path: Array<string | number>) => void;
+  export let onFormat: () => void;
+  export let onMinify: () => void;
 
   const parser = { parse, stringify };
   let split = 50;
@@ -247,7 +249,18 @@
     ></div>
   {/if}
   <section aria-label="Source pane" hidden={view === "tree"}>
-    <h2>Source</h2>
+    <div class="pane-header">
+      <h2>Code <small>Source</small></h2>
+      <div class="pane-actions">
+        <button
+          disabled={!state.analysis?.valid || state.processing}
+          onclick={onFormat}>Format</button
+        ><button
+          disabled={!state.analysis?.valid || state.processing}
+          onclick={onMinify}>Minify</button
+        >
+      </div>
+    </div>
     <JSONEditor
       bind:this={codeEditor}
       content={code}
@@ -263,20 +276,41 @@
   </section>
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
   <section aria-label="Tree pane" tabindex="0" hidden={view === "code"}>
-    <h2>Tree</h2>
+    <div class="pane-header">
+      <h2>Tree <small>Structure</small></h2>
+      <div class="pane-actions">
+        {#if !unavailable}<button onclick={openSearch}>Search fields</button
+          >{/if}
+      </div>
+    </div>
     {#if unavailable}<p role="status">
         Tree unavailable: invalid or duplicate-key source
       </p>{/if}
-    {#if !unavailable}<button onclick={openSearch}>Search</button>{/if}
-    <button
-      disabled={!state.selection.tree || unavailable}
-      onclick={copySelectedPath}>Copy path</button
-    >
-    <button
-      disabled={!state.selection.tree || unavailable}
-      onclick={copySelectedSubtree}>Copy subtree</button
-    >
-    <div hidden={unavailable}>
+    <div class="selection-actions">
+      <span
+        >{state.selection.tree &&
+        state.selection.tree.type !== "text" &&
+        state.selection.tree.type !== "multi"
+          ? stringifyJSONPath(state.selection.tree.path)
+          : "Select a field to copy its path"}</span
+      ><button
+        class="icon-button"
+        aria-label="Copy path"
+        title="Copy path"
+        disabled={!state.selection.tree || unavailable}
+        onclick={copySelectedPath}
+        ><svg viewBox="0 0 24 24" aria-hidden="true"
+          ><rect x="8" y="8" width="11" height="11" rx="2" /><path
+            d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"
+          /></svg
+        ></button
+      >
+      <button
+        disabled={!state.selection.tree || unavailable}
+        onclick={copySelectedSubtree}>Copy subtree</button
+      >
+    </div>
+    <div class="tree-editor" hidden={unavailable}>
       <JSONEditor
         bind:this={treeEditor}
         content={tree}

@@ -254,73 +254,129 @@
   });
 </script>
 
-<main>
-  <h1>JSON workspace</h1>
-  <button onclick={() => fileInput.click()}>Open file</button>
-  <input
-    bind:this={fileInput}
-    type="file"
-    accept="application/json,.json"
-    hidden
-    onchange={(event) => {
-      const file = event.currentTarget.files?.[0];
-      if (file) void openFile(file);
-      event.currentTarget.value = "";
-    }}
-  />
-  <button onclick={pasteDocument}>Paste as document</button>
-  <button
-    onclick={() => {
-      if (isDirty(document) && !window.confirm("Clear the unsaved document?"))
-        return;
-      replaceDocument("");
-    }}>Clear</button
-  >
-  <button
-    disabled={!document.analysis?.valid || busy}
-    onclick={() => runOperation("format")}>Format</button
-  >
-  <button
-    disabled={!document.analysis?.valid || busy}
-    onclick={() => runOperation("minify")}>Minify</button
-  >
-  <button disabled={!document.past.length} onclick={() => history("undo")}
-    >Undo</button
-  >
-  <button disabled={!document.future.length} onclick={() => history("redo")}
-    >Redo</button
-  >
-  <button onclick={copyJson}>Copy JSON</button>
-  <button onclick={download}>Download</button>
-  <button
-    disabled={!loadController}
-    onclick={() => {
-      loadId++;
-      loadController?.abort();
-      loadController = undefined;
-    }}>Cancel file load</button
-  >
-  <button
-    disabled={!busy}
-    onclick={() => {
-      processId++;
-      cancelledRevision = document.revision;
-      processor.cancel();
-      busy = false;
-      document = { ...document, processing: false };
-    }}>Cancel</button
-  >
-  <nav aria-label="Workspace layout">
-    <button aria-pressed={view === "split"} onclick={() => chooseView("split")}
-      >Split</button
+<main class="workspace">
+  <header class="workspace-header">
+    <div class="identity">
+      <span class="brand-mark" aria-hidden="true">{"{ }"}</span>
+      <div>
+        <h1>JSON workspace</h1>
+        <p>Private developer workspace</p>
+      </div>
+    </div>
+    <div class="document-name" title="document.json">
+      document.json <span
+        >{isDirty(document) ? "● Unsaved" : "· Unchanged"}</span
+      >
+    </div>
+    <div class="header-actions">
+      <button class="primary" onclick={() => fileInput.click()}
+        >Open JSON</button
+      >
+      <input
+        bind:this={fileInput}
+        type="file"
+        accept="application/json,.json"
+        hidden
+        onchange={(event) => {
+          const file = event.currentTarget.files?.[0];
+          if (file) void openFile(file);
+          event.currentTarget.value = "";
+        }}
+      />
+      <button onclick={pasteDocument}>Paste</button>
+      <button
+        class="icon-button"
+        aria-label="Copy JSON"
+        title="Copy JSON"
+        onclick={copyJson}
+        ><svg viewBox="0 0 24 24" aria-hidden="true"
+          ><rect x="8" y="8" width="11" height="11" rx="2" /><path
+            d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"
+          /></svg
+        ></button
+      >
+      <button
+        class="icon-button"
+        aria-label="Download"
+        title="Download JSON"
+        onclick={download}
+        ><svg viewBox="0 0 24 24" aria-hidden="true"
+          ><path d="M12 3v12m-4-4 4 4 4-4M4 17v3h16v-3" /></svg
+        ></button
+      >
+      <button
+        onclick={() => {
+          if (
+            isDirty(document) &&
+            !window.confirm("Clear the unsaved document?")
+          )
+            return;
+          replaceDocument("");
+        }}>Clear</button
+      >
+    </div>
+  </header>
+  <div class="workspace-navigation">
+    <nav aria-label="Workspace layout">
+      <button
+        aria-pressed={view === "split"}
+        onclick={() => chooseView("split")}>Split</button
+      >
+      <button aria-pressed={view === "code"} onclick={() => chooseView("code")}
+        >Code</button
+      >
+      <button aria-pressed={view === "tree"} onclick={() => chooseView("tree")}
+        >Tree</button
+      >
+    </nav>
+    <span
+      >{document.analysis?.valid ? "Valid JSON" : "Draft"} · {document.analysis
+        ?.bytes ?? new TextEncoder().encode(document.source).length} bytes</span
     >
-    <button aria-pressed={view === "code"} onclick={() => chooseView("code")}
-      >Code</button
-    >
-    <button aria-pressed={view === "tree"} onclick={() => chooseView("tree")}
-      >Tree</button
-    >
-  </nav>
+  </div>
+  <div class="history-strip" aria-label="Edit history">
+    <span>Document</span>
+    <div>
+      <button
+        class="icon-button"
+        aria-label="Undo"
+        title="Undo (Ctrl/⌘+Z)"
+        disabled={!document.past.length}
+        onclick={() => history("undo")}
+        ><svg viewBox="0 0 24 24" aria-hidden="true"
+          ><path d="M9 8 4 12l5 4M4 12h10a5 5 0 0 1 0 10" /></svg
+        ></button
+      >
+      <button
+        class="icon-button"
+        aria-label="Redo"
+        title="Redo (Ctrl/⌘+Shift+Z)"
+        disabled={!document.future.length}
+        onclick={() => history("redo")}
+        ><svg viewBox="0 0 24 24" aria-hidden="true"
+          ><path d="m15 8 5 4-5 4m5-4H10a5 5 0 0 0 0 10" /></svg
+        ></button
+      >
+    </div>
+  </div>
+  {#if loadController || busy}<div class="pending-actions">
+      {#if loadController}<button
+          onclick={() => {
+            loadId++;
+            loadController?.abort();
+            loadController = undefined;
+          }}>Cancel file load</button
+        >{/if}
+      {#if busy}<button
+          onclick={() => {
+            processId++;
+            cancelledRevision = document.revision;
+            processor.cancel();
+            busy = false;
+            document = { ...document, processing: false };
+          }}>Cancel</button
+        >{/if}
+    </div>{/if}
   {#if document.analysis?.mode !== "unavailable"}
     <EditorPanes
       bind:this={panes}
@@ -331,6 +387,8 @@
       onHistory={history}
       onCopyPath={copyPath}
       onCopySubtree={copySubtree}
+      onFormat={() => void runOperation("format")}
+      onMinify={() => void runOperation("minify")}
     />
   {:else}<p role="status">
       Inspection unavailable: {document.analysis.diagnostics[0]?.message}.
