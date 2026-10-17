@@ -10,6 +10,214 @@ async function source(page: Page, text: string) {
 
 test.beforeEach(async ({ page }) => { await page.goto('/') })
 
+test('copy preserves exact dirty source when clipboard rejects', async ({ page }) => {
+  const draft = String.raw`{"n":9007199254740993,"s":"\u0061"}`
+  await source(page, draft)
+  await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { value: { writeText: async () => { throw new Error('denied') } } }))
+  await page.getByRole('button', { name: 'Copy JSON', exact: true }).click()
+  await expect(page.getByTestId('source')).toHaveText(draft)
+  await expect(page.getByText('Unsaved changes')).toBeVisible()
+  await expect(page.getByRole('alert')).toContainText(/clipboard/i)
+})
+
+test('beforeunload warning tracks the dirty baseline', async ({ page }) => {
+  const wasPrevented = () => page.evaluate(() => {
+    const event = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(event)
+    return event.defaultPrevented
+  })
+  expect(await wasPrevented()).toBe(false)
+  await source(page, '{"dirty":true}')
+  expect(await wasPrevented()).toBe(true)
+  await page.getByRole('button', { name: 'Undo', exact: true }).click()
+  expect(await wasPrevented()).toBe(false)
+})
+
+test('dirty file replacement asks for confirmation and cancellation retains source', async ({ page }) => {
+  const draft = '{"draft":'
+  await source(page, draft)
+  page.once('dialog', dialog => dialog.dismiss())
+  await page.getByRole('button', { name: 'Open file', exact: true }).click()
+  await page.locator('input[type=file]').setInputFiles({ name: 'replacement.json', mimeType: 'application/json', buffer: Buffer.from('{"replacement":true}') })
+  await expect(page.getByTestId('source')).toHaveText(draft)
+})
+
+test('download initiates the exact invalid draft and reports initiation, not disk completion', async ({ page }) => {
+  const draft = String.raw`{"n":9007199254740993,"s":"\u0061",`
+  await source(page, draft)
+  page.once('dialog', dialog => dialog.accept())
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Download', exact: true }).click()
+  const file = await download
+  expect(file.suggestedFilename()).toBe('document.json')
+  const path = await file.path()
+  expect(await (await import('node:fs/promises')).readFile(path!, 'utf8')).toBe(draft)
+  await expect(page.getByRole('alert')).toHaveText('Download initiated.')
+  await expect(page.getByText('Unchanged')).toBeVisible()
+})
+
+test('clearing dirty source requires confirmation and rejection preserves undo history', async ({ page }) => {
+  const draft = '{"before":true}'
+  await source(page, draft)
+  page.once('dialog', dialog => dialog.dismiss())
+  await page.getByRole('button', { name: 'Clear', exact: true }).click()
+  await expect(page.getByTestId('source')).toHaveText(draft)
+  await page.getByRole('button', { name: 'Undo', exact: true }).click()
+  await expect(page.getByTestId('source')).toHaveText('{}')
+})
+
+test('pasting as a document requires confirmation and rejection preserves the draft', async ({ page }) => {
+  const draft = '{"draft":1}'
+  await source(page, draft)
+  await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { value: { readText: async () => '{"pasted":true}' } }))
+  page.once('dialog', dialog => dialog.dismiss())
+  await page.getByRole('button', { name: 'Paste as document', exact: true }).click()
+  await expect(page.getByTestId('source')).toHaveText(draft)
+  await expect(page.getByText('Unsaved changes')).toBeVisible()
+})
+
+test('opening a confirmed file replaces the source and establishes it as the clean baseline', async ({ page }) => {
+  await source(page, '{"draft":1}')
+  page.once('dialog', dialog => dialog.accept())
+  await page.getByRole('button', { name: 'Open file', exact: true }).click()
+  await page.locator('input[type=file]').setInputFiles({ name: 'replacement.json', mimeType: 'application/json', buffer: Buffer.from('{"replacement":true}') })
+  await expect(page.getByTestId('source')).toHaveText('{"replacement":true}')
+  await expect(page.getByText('Unchanged')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
+})
+
+test('cancelling a pending file read leaves the committed source untouched', async ({ page }) => {
+  await source(page, '{"draft":1}')
+  await page.evaluate(() => {
+    const readers: any[] = []
+    ;(window as any).__readers = readers
+    class SlowReader {
+      result: string | null = null
+      onload: (() => void) | null = null
+      onerror: (() => void) | null = null
+      onabort: (() => void) | null = null
+      onloadend: (() => void) | null = null
+      error = null
+      readAsText() { readers.push(this) }
+      abort() { this.onabort?.(); this.onloadend?.() }
+    }
+    Object.defineProperty(window, 'FileReader', { value: SlowReader })
+  })
+  await page.getByRole('button', { name: 'Open file', exact: true }).click()
+  await page.locator('input[type=file]').setInputFiles({ name: 'pending.json', mimeType: 'application/json', buffer: Buffer.from('{"new":true}') })
+  const cancel = page.getByRole('button', { name: 'Cancel file load', exact: true })
+  await expect(cancel).toBeEnabled()
+  await cancel.click()
+  await expect(page.getByTestId('source')).toHaveText('{"draft":1}')
+})
+
+test('a later clear invalidates an earlier pending file open', async ({ page }) => {
+  await page.evaluate(() => {
+    const readers: any[] = []
+    ;(window as any).__readers = readers
+    class SlowReader {
+      result: string | null = null
+      onload: (() => void) | null = null
+      onerror: (() => void) | null = null
+      onabort: (() => void) | null = null
+      onloadend: (() => void) | null = null
+      error = null
+      readAsText() { readers.push(this) }
+      abort() { this.onabort?.(); this.onloadend?.() }
+    }
+    Object.defineProperty(window, 'FileReader', { value: SlowReader })
+  })
+  await page.locator('input[type=file]').setInputFiles({ name: 'pending.json', mimeType: 'application/json', buffer: Buffer.from('{"late":true}') })
+  await expect(page.getByRole('button', { name: 'Cancel file load', exact: true })).toBeEnabled()
+  await page.getByRole('button', { name: 'Clear', exact: true }).click()
+  await page.evaluate(() => {
+    const reader = (window as any).__readers[0]
+    reader.result = '{"late":true}'; reader.onload?.(); reader.onloadend?.()
+  })
+  await expect(page.getByTestId('source')).toHaveText('')
+})
+
+test('a file read error leaves source/history intact and reports the failure', async ({ page }) => {
+  await source(page, '{"draft":1}')
+  await page.evaluate(() => {
+    class FailedReader {
+      result: string | null = null
+      onload: (() => void) | null = null
+      onerror: (() => void) | null = null
+      onabort: (() => void) | null = null
+      onloadend: (() => void) | null = null
+      error = new Error('read failed')
+      readAsText() { this.onerror?.(); this.onloadend?.() }
+      abort() { this.onabort?.(); this.onloadend?.() }
+    }
+    Object.defineProperty(window, 'FileReader', { value: FailedReader })
+  })
+  await page.locator('input[type=file]').setInputFiles({ name: 'failed.json', mimeType: 'application/json', buffer: Buffer.from('{"new":true}') })
+  await expect(page.getByRole('alert')).toHaveText('read failed')
+  await expect(page.getByTestId('source')).toHaveText('{"draft":1}')
+  await page.getByRole('button', { name: 'Undo', exact: true }).click()
+  await expect(page.getByTestId('source')).toHaveText('{}')
+})
+
+test('a late earlier file read cannot replace a later selected file', async ({ page }) => {
+  await page.evaluate(() => {
+    const readers: any[] = []
+    ;(window as any).__readers = readers
+    class SlowReader {
+      result: string | null = null
+      onload: (() => void) | null = null
+      onerror: (() => void) | null = null
+      onabort: (() => void) | null = null
+      onloadend: (() => void) | null = null
+      error = null
+      readAsText() { readers.push(this) }
+      abort() { this.onabort?.(); this.onloadend?.() }
+    }
+    Object.defineProperty(window, 'FileReader', { value: SlowReader })
+  })
+  const input = page.locator('input[type=file]')
+  await input.setInputFiles({ name: 'a.json', mimeType: 'application/json', buffer: Buffer.from('{"a":1}') })
+  await expect(page.getByRole('button', { name: 'Cancel file load', exact: true })).toBeEnabled()
+  await input.setInputFiles({ name: 'b.json', mimeType: 'application/json', buffer: Buffer.from('{"b":2}') })
+  await expect.poll(() => page.evaluate(() => (window as any).__readers.length)).toBe(2)
+  await page.evaluate(() => {
+    const readers = (window as any).__readers
+    readers[1].result = '{"b":2}'; readers[1].onload?.(); readers[1].onloadend?.()
+    readers[0].result = '{"a":1}'; readers[0].onload?.(); readers[0].onloadend?.()
+  })
+  await expect(page.getByTestId('source')).toHaveText('{"b":2}')
+})
+
+test('an edit during file loading requires fresh replacement confirmation', async ({ page }) => {
+  await source(page, '{"draft":1}')
+  await page.evaluate(() => {
+    const readers: any[] = []
+    ;(window as any).__readers = readers
+    class SlowReader {
+      result: string | null = null
+      onload: (() => void) | null = null
+      onerror: (() => void) | null = null
+      onabort: (() => void) | null = null
+      onloadend: (() => void) | null = null
+      error = null
+      readAsText() { readers.push(this) }
+      abort() { this.onabort?.(); this.onloadend?.() }
+    }
+    Object.defineProperty(window, 'FileReader', { value: SlowReader })
+  })
+  await page.locator('input[type=file]').setInputFiles({ name: 'pending.json', mimeType: 'application/json', buffer: Buffer.from('{"new":true}') })
+  await source(page, '{"newer draft":2}')
+  const prompt = page.waitForEvent('dialog')
+  await page.evaluate(() => setTimeout(() => {
+    const reader = (window as any).__readers[0]
+    reader.result = '{"new":true}'; reader.onload?.(); reader.onloadend?.()
+  }, 0))
+  const dialog = await prompt
+  expect(dialog.message()).toContain('document changed')
+  await dialog.accept()
+  await expect(page.getByTestId('source')).toHaveText('{"new":true}')
+})
+
 test('format and minify are undoable, redoable, and superseded by a new edit', async ({ page }) => {
   const compact = '{"a":1}'
   await source(page, compact)
