@@ -1,0 +1,11 @@
+
+> json-workspace-editor-gate@0.0.0 test
+> vitest run
+
+
+ RUN  v5.0.5 /home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace
+
+No test files found, exiting with code 1
+
+include: src/**/*.test.ts
+exclude:  **/node_modules/**, **/.git/**

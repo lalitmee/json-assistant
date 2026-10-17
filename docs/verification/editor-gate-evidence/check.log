@@ -1,0 +1,8 @@
+
+> json-workspace-editor-gate@0.0.0 check
+> svelte-check --tsconfig ./tsconfig.json && tsc --noEmit
+
+Loading svelte-check in workspace: /home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace
+Getting Svelte diagnostics...
+
+svelte-check found 0 errors and 0 warnings

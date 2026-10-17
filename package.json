@@ -1,0 +1,28 @@
+{
+  "name": "json-workspace-editor-gate",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "check": "svelte-check --tsconfig ./tsconfig.json && tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "jsonc-parser": "3.3.1",
+    "lossless-json": "4.3.2",
+    "svelte": "5.57.2",
+    "svelte-jsoneditor": "3.13.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "@types/node": "26.6.5",
+    "svelte-check": "4.7.7",
+    "typescript": "6.0.3",
+    "vite": "8.3.4",
+    "vitest": "5.0.5"
+  }
+}

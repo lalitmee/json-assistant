@@ -1,0 +1,274 @@
+
+> json-workspace-editor-gate@0.0.0 test:e2e
+> playwright test tests/editor-gate.spec.ts
+
+
+Running 8 tests using 1 worker
+
+  ✘  1 [chromium] › tests/editor-gate.spec.ts:19:1 › shared chronological history (8.2s)
+  ✘  2 [chromium] › tests/editor-gate.spec.ts:34:1 › lossless unchanged tokens (8.2s)
+  ✘  3 [chromium] › tests/editor-gate.spec.ts:45:1 › numeric-looking member order survives a sibling edit (8.2s)
+  ✘  4 [chromium] › tests/editor-gate.spec.ts:52:1 › minimal escaped-string sibling case (8.2s)
+  ✘  5 [firefox] › tests/editor-gate.spec.ts:19:1 › shared chronological history (12.0s)
+  ✘  6 [firefox] › tests/editor-gate.spec.ts:34:1 › lossless unchanged tokens (12.3s)
+  ✘  7 [firefox] › tests/editor-gate.spec.ts:45:1 › numeric-looking member order survives a sibling edit (11.6s)
+  ✘  8 [firefox] › tests/editor-gate.spec.ts:52:1 › minimal escaped-string sibling case (11.4s)
+
+
+  1) [chromium] › tests/editor-gate.spec.ts:19:1 › shared chronological history ────────────────────
+
+    TimeoutError: locator.dblclick: Timeout 5000ms exceeded.
+    Call log:
+      - waiting for locator('[aria-label="Tree pane"] .jse-value').filter({ hasText: /^before$/ })
+
+
+       9 | async function changeSibling(page: Page) {
+      10 |   const value = page.locator('[aria-label="Tree pane"] .jse-value').filter({ hasText: /^before$/ })
+    > 11 |   await value.dblclick()
+         |               ^
+      12 |   const editable = page.locator('[aria-label="Tree pane"] [contenteditable="true"]')
+      13 |   await editable.fill('after')
+      14 |   await editable.press('Enter')
+        at changeSibling (/home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace/tests/editor-gate.spec.ts:11:15)
+        at /home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace/tests/editor-gate.spec.ts:21:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/editor-gate-shared-chronological-history-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/editor-gate-shared-chronological-history-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/editor-gate-shared-chronological-history-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/editor-gate-shared-chronological-history-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/editor-gate.spec.ts:34:1 › lossless unchanged tokens ───────────────────────
+
+    TimeoutError: locator.dblclick: Timeout 5000ms exceeded.
+    Call log:
+      - waiting for locator('[aria-label="Tree pane"] .jse-value').filter({ hasText: /^before$/ })
+
+
+       9 | async function changeSibling(page: Page) {
+      10 |   const value = page.locator('[aria-label="Tree pane"] .jse-value').filter({ hasText: /^before$/ })
+    > 11 |   await value.dblclick()
+         |               ^
+      12 |   const editable = page.locator('[aria-label="Tree pane"] [contenteditable="true"]')
+      13 |   await editable.fill('after')
+      14 |   await editable.press('Enter')
+        at changeSibling (/home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace/tests/editor-gate.spec.ts:11:15)
+        at /home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace/tests/editor-gate.spec.ts:37:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/editor-gate-lossless-unchanged-tokens-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/editor-gate-lossless-unchanged-tokens-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/editor-gate-lossless-unchanged-tokens-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/editor-gate-lossless-unchanged-tokens-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › tests/editor-gate.spec.ts:45:1 › numeric-looking member order survives a sibling edit
+
+    TimeoutError: locator.dblclick: Timeout 5000ms exceeded.
+    Call log:
+      - waiting for locator('[aria-label="Tree pane"] .jse-value').filter({ hasText: /^before$/ })
+
+
+       9 | async function changeSibling(page: Page) {
+      10 |   const value = page.locator('[aria-label="Tree pane"] .jse-value').filter({ hasText: /^before$/ })
+    > 11 |   await value.dblclick()
+         |               ^
+      12 |   const editable = page.locator('[aria-label="Tree pane"] [contenteditable="true"]')
+      13 |   await editable.fill('after')
+      14 |   await editable.press('Enter')
+        at changeSibling (/home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace/tests/editor-gate.spec.ts:11:15)
+        at /home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace/tests/editor-gate.spec.ts:47:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/editor-gate-numeric-lookin-828ac-der-survives-a-sibling-edit-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/editor-gate-numeric-lookin-828ac-der-survives-a-sibling-edit-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/editor-gate-numeric-lookin-828ac-der-survives-a-sibling-edit-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/editor-gate-numeric-lookin-828ac-der-survives-a-sibling-edit-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › tests/editor-gate.spec.ts:52:1 › minimal escaped-string sibling case ─────────────
+
+    TimeoutError: locator.dblclick: Timeout 5000ms exceeded.
+    Call log:
+      - waiting for locator('[aria-label="Tree pane"] .jse-value').filter({ hasText: /^before$/ })
+
+
+       9 | async function changeSibling(page: Page) {
+      10 |   const value = page.locator('[aria-label="Tree pane"] .jse-value').filter({ hasText: /^before$/ })
+    > 11 |   await value.dblclick()
+         |               ^
+      12 |   const editable = page.locator('[aria-label="Tree pane"] [contenteditable="true"]')
+      13 |   await editable.fill('after')
+      14 |   await editable.press('Enter')
+        at changeSibling (/home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace/tests/editor-gate.spec.ts:11:15)
+        at /home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace/tests/editor-gate.spec.ts:54:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/editor-gate-minimal-escaped-string-sibling-case-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/editor-gate-minimal-escaped-string-sibling-case-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/editor-gate-minimal-escaped-string-sibling-case-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/editor-gate-minimal-escaped-string-sibling-case-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [firefox] › tests/editor-gate.spec.ts:19:1 › shared chronological history ─────────────────────
+
+    TimeoutError: locator.dblclick: Timeout 5000ms exceeded.
+    Call log:
+      - waiting for locator('[aria-label="Tree pane"] .jse-value').filter({ hasText: /^before$/ })
+
+
+       9 | async function changeSibling(page: Page) {
+      10 |   const value = page.locator('[aria-label="Tree pane"] .jse-value').filter({ hasText: /^before$/ })
+    > 11 |   await value.dblclick()
+         |               ^
+      12 |   const editable = page.locator('[aria-label="Tree pane"] [contenteditable="true"]')
+      13 |   await editable.fill('after')
+      14 |   await editable.press('Enter')
+        at changeSibling (/home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace/tests/editor-gate.spec.ts:11:15)
+        at /home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace/tests/editor-gate.spec.ts:21:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/editor-gate-shared-chronological-history-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/editor-gate-shared-chronological-history-firefox/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/editor-gate-shared-chronological-history-firefox/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/editor-gate-shared-chronological-history-firefox/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [firefox] › tests/editor-gate.spec.ts:34:1 › lossless unchanged tokens ────────────────────────
+
+    TimeoutError: locator.dblclick: Timeout 5000ms exceeded.
+    Call log:
+      - waiting for locator('[aria-label="Tree pane"] .jse-value').filter({ hasText: /^before$/ })
+
+
+       9 | async function changeSibling(page: Page) {
+      10 |   const value = page.locator('[aria-label="Tree pane"] .jse-value').filter({ hasText: /^before$/ })
+    > 11 |   await value.dblclick()
+         |               ^
+      12 |   const editable = page.locator('[aria-label="Tree pane"] [contenteditable="true"]')
+      13 |   await editable.fill('after')
+      14 |   await editable.press('Enter')
+        at changeSibling (/home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace/tests/editor-gate.spec.ts:11:15)
+        at /home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace/tests/editor-gate.spec.ts:37:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/editor-gate-lossless-unchanged-tokens-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/editor-gate-lossless-unchanged-tokens-firefox/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/editor-gate-lossless-unchanged-tokens-firefox/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/editor-gate-lossless-unchanged-tokens-firefox/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) [firefox] › tests/editor-gate.spec.ts:45:1 › numeric-looking member order survives a sibling edit
+
+    TimeoutError: locator.dblclick: Timeout 5000ms exceeded.
+    Call log:
+      - waiting for locator('[aria-label="Tree pane"] .jse-value').filter({ hasText: /^before$/ })
+
+
+       9 | async function changeSibling(page: Page) {
+      10 |   const value = page.locator('[aria-label="Tree pane"] .jse-value').filter({ hasText: /^before$/ })
+    > 11 |   await value.dblclick()
+         |               ^
+      12 |   const editable = page.locator('[aria-label="Tree pane"] [contenteditable="true"]')
+      13 |   await editable.fill('after')
+      14 |   await editable.press('Enter')
+        at changeSibling (/home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace/tests/editor-gate.spec.ts:11:15)
+        at /home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace/tests/editor-gate.spec.ts:47:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/editor-gate-numeric-lookin-828ac-der-survives-a-sibling-edit-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/editor-gate-numeric-lookin-828ac-der-survives-a-sibling-edit-firefox/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/editor-gate-numeric-lookin-828ac-der-survives-a-sibling-edit-firefox/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/editor-gate-numeric-lookin-828ac-der-survives-a-sibling-edit-firefox/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  8) [firefox] › tests/editor-gate.spec.ts:52:1 › minimal escaped-string sibling case ──────────────
+
+    TimeoutError: locator.dblclick: Timeout 5000ms exceeded.
+    Call log:
+      - waiting for locator('[aria-label="Tree pane"] .jse-value').filter({ hasText: /^before$/ })
+
+
+       9 | async function changeSibling(page: Page) {
+      10 |   const value = page.locator('[aria-label="Tree pane"] .jse-value').filter({ hasText: /^before$/ })
+    > 11 |   await value.dblclick()
+         |               ^
+      12 |   const editable = page.locator('[aria-label="Tree pane"] [contenteditable="true"]')
+      13 |   await editable.fill('after')
+      14 |   await editable.press('Enter')
+        at changeSibling (/home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace/tests/editor-gate.spec.ts:11:15)
+        at /home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace/tests/editor-gate.spec.ts:54:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/editor-gate-minimal-escaped-string-sibling-case-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/editor-gate-minimal-escaped-string-sibling-case-firefox/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/editor-gate-minimal-escaped-string-sibling-case-firefox/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/editor-gate-minimal-escaped-string-sibling-case-firefox/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  8 failed
+    [chromium] › tests/editor-gate.spec.ts:19:1 › shared chronological history ─────────────────────
+    [chromium] › tests/editor-gate.spec.ts:34:1 › lossless unchanged tokens ────────────────────────
+    [chromium] › tests/editor-gate.spec.ts:45:1 › numeric-looking member order survives a sibling edit
+    [chromium] › tests/editor-gate.spec.ts:52:1 › minimal escaped-string sibling case ──────────────
+    [firefox] › tests/editor-gate.spec.ts:19:1 › shared chronological history ──────────────────────
+    [firefox] › tests/editor-gate.spec.ts:34:1 › lossless unchanged tokens ─────────────────────────
+    [firefox] › tests/editor-gate.spec.ts:45:1 › numeric-looking member order survives a sibling edit
+    [firefox] › tests/editor-gate.spec.ts:52:1 › minimal escaped-string sibling case ───────────────
