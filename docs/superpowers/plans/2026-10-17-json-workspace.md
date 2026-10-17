@@ -10,7 +10,7 @@
 
 **Spec:** [Revised release-1 design](../specs/2026-10-17-json-workspace-design.md)
 
-**Status:** Revised plan pending user review; not authorization to install dependencies or implement. The user's prior execution-method choice was Subagent-driven; it remains subject to approval of this revised plan. An integration failure stops all later tasks.
+**Status:** Revised plan approved by the user on 2026-10-17. The user selected Subagent-driven execution. Task 1 remains a blocking integration gate; an integration failure stops all later tasks.
 
 ## Global Constraints
 
