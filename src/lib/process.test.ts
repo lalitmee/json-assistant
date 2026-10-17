@@ -23,6 +23,15 @@ describe('processSource', () => {
       diagnostics: [{ kind: 'syntax', message: 'JSON exceeds safe processing limits' }]
     })
   })
+  it('refuses unmeasured inputs before full parsing and identifies their shape', () => {
+    const broad = `[${Array(20).fill('0').join(',')}]`
+    const result = processSource(request(broad), { maxBytes: 8, maxNodes: 4, maxDepth: 4 })
+    expect(result.analysis).toMatchObject({ valid: false, mode: 'unavailable', diagnostics: [{ message: expect.stringContaining('resource') }] })
+    expect(result.source).toBeUndefined()
+    expect(processSource(request('"' + 'x'.repeat(30) + '"'), { maxBytes: 8 }).analysis.mode).toBe('unavailable')
+    expect(processSource(request(broad), { maxNodes: 4 }).analysis.mode).toBe('unavailable')
+    expect(processSource(request('[[[[0]]]]'), { maxDepth: 2 }).analysis.mode).toBe('unavailable')
+  })
   it.each(['', '{"a":}', '{"a":1,}', '//x\n{}', 'NaN', 'Infinity'])('rejects invalid strict JSON %j', source => {
     expect(processSource(request(source)).analysis).toMatchObject({ valid: false, diagnostics: [{ kind: 'syntax', line: expect.any(Number), column: expect.any(Number) }] })
     expect(processSource(request(source, 'format')).source).toBeUndefined()

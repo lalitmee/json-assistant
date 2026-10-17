@@ -116,6 +116,7 @@
       (window as any).__editorGateProcess = runOperation
       ;(window as any).__editorGateApplyResult = (result: ProcessResult) => applyResult(result.analysis.revision, result)
       ;(window as any).__editorGateParsePath = (path: string) => panes.parsePath(path)
+      ;(window as any).__benchmarkLoad = (source: string) => { replaceDocument(source); return runOperation('analyze') }
     }
     return () => { loadController?.abort(); processor.dispose(); window.removeEventListener('keydown', shortcut, true); window.removeEventListener('resize', resize); if (beforeUnloadHandler) window.removeEventListener('beforeunload', beforeUnloadHandler) }
   })
@@ -140,11 +141,13 @@
   <button aria-pressed={view === 'code'} onclick={() => chooseView('code')}>Code</button>
   <button aria-pressed={view === 'tree'} onclick={() => chooseView('tree')}>Tree</button>
 </nav>
+{#if document.analysis?.mode !== 'unavailable'}
 <EditorPanes bind:this={panes} state={document} {view} onEdit={edit} onSelection={select} onHistory={history} onCopyPath={copyPath} onCopySubtree={copySubtree} />
+{:else}<p role="status">Inspection unavailable: {document.analysis.diagnostics[0]?.message}. Source export remains available.</p>{/if}
 <section aria-label="Document status">
   <p>{document.processing ? 'Processing' : cancelledRevision === document.revision && !document.analysis ? 'Processing cancelled' : document.analysis ? document.analysis.valid ? 'Valid JSON' : 'Invalid JSON' : 'Processing'} · {document.analysis?.bytes ?? new TextEncoder().encode(document.source).length} UTF-8 bytes · {isDirty(document) ? 'Unsaved changes' : 'Unchanged'}</p>
   {#if document.analysis?.diagnostics[0]}<p data-testid="diagnostic">{document.analysis.diagnostics[0].kind === 'duplicate' ? 'Duplicate key' : 'Invalid JSON'} at {document.analysis.diagnostics[0].line}:{document.analysis.diagnostics[0].column}: {document.analysis.diagnostics[0].message}</p>{/if}
-  <p>Local processing only · no recovery · {document.analysis?.valid ? 'edit and inspect' : 'edit only; inspection unavailable'}</p>
+  <p>Local processing only · no recovery · {document.analysis?.mode === 'unavailable' ? 'source export only; inspection unavailable' : document.analysis?.valid ? 'edit and inspect' : 'edit only; inspection unavailable'}</p>
   {#if copied}<output>Copied {copied}.</output>{/if}
   {#if ioError}<p role="alert">{ioError}</p>{/if}
   {#if document.analysis?.revision === document.revision && !document.analysis.valid}<p role="status">Warning: invalid JSON draft; Download exports the exact raw source, including invalid content.</p>{/if}

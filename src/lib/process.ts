@@ -4,6 +4,7 @@ import type { Analysis, Diagnostic } from './document'
 
 export type ProcessRequest = { revision: number; source: string; operation: 'analyze' | 'format' | 'minify' }
 export type ProcessResult = { analysis: Analysis; source?: string }
+export type ProcessLimits = { maxBytes?: number; maxDepth?: number; maxNodes?: number }
 
 const MAX_DEPTH = 256
 const MAX_NODES = 100_000
@@ -14,11 +15,19 @@ function position(source: string, offset: number) {
   return { line: lines.length, column: lines.at(-1)!.length + 1 }
 }
 
-export function processSource(request: ProcessRequest): ProcessResult {
+export function processSource(request: ProcessRequest, limits: ProcessLimits = {}): ProcessResult {
   const { source, revision, operation } = request
+  const maxDepthLimit = limits.maxDepth ?? MAX_DEPTH
+  const maxNodesLimit = limits.maxNodes ?? MAX_NODES
+  const maxBytesLimit = limits.maxBytes ?? Infinity
+  const bytes = new TextEncoder().encode(source).length
   const diagnostics: Diagnostic[] = []
   let depth = 0, maxDepth = 0, nodes = 0
   const scanner = createScanner(source, false)
+  if (bytes > maxBytesLimit) {
+    const analysis: Analysis = { revision, bytes, valid: false, diagnostics: [{ kind: 'syntax', message: 'Document exceeds the resource limit; source export remains available', offset: 0, line: 1, column: 1 }], depth: 0, nodes: 0, mode: 'unavailable' }
+    return { analysis }
+  }
   const tokens: Array<{ offset: number; length: number }> = []
   let token: number
   do {
@@ -36,7 +45,7 @@ export function processSource(request: ProcessRequest): ProcessResult {
       tokens.push({ offset, length: scanner.getTokenLength() }); nodes++
       if (token === K.openBrace || token === K.openBracket) maxDepth = Math.max(maxDepth, ++depth)
       if (token === K.closeBrace || token === K.closeBracket) depth--
-      if (maxDepth > MAX_DEPTH || nodes > MAX_NODES) {
+      if (maxDepth > maxDepthLimit || nodes > maxNodesLimit) {
         const p = position(source, offset)
         diagnostics.push({ kind: 'syntax', message: 'JSON exceeds safe processing limits', offset, ...p }); break
       }
@@ -69,7 +78,8 @@ export function processSource(request: ProcessRequest): ProcessResult {
     }
   }
   valid = diagnostics.length === 0
-  const analysis: Analysis = { revision, bytes: new TextEncoder().encode(source).length, valid, diagnostics, depth: maxDepth, nodes }
+  const unavailable = diagnostics[0]?.message.includes('safe processing limits') ?? false
+  const analysis: Analysis = { revision, bytes, valid, diagnostics, depth: maxDepth, nodes, mode: unavailable ? 'unavailable' : 'edit' }
   if (operation === 'analyze' || !valid) return { analysis }
   if (operation === 'format') return { analysis, source: applyEdits(source, format(source, undefined, { insertSpaces: true, tabSize: 2, eol: '\n' })) }
   return { analysis, source: tokens.map(t => source.slice(t.offset, t.offset + t.length)).join('') }

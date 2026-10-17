@@ -69,7 +69,7 @@ test('invalid and decoded-equivalent duplicate drafts stay exact and unavailable
   for (const input of ['{"a":', String.raw`{"a":1,"\u0061":2}`]) {
     await source(page, input)
     await expect(page.getByTestId('source')).toHaveText(input)
-    await expect(page.getByRole('status')).toContainText('Tree unavailable')
+    await expect(page.getByText(/Tree unavailable:/)).toBeVisible()
     await expect(page.getByRole('region', { name: 'Tree pane' }).getByRole('tree')).toBeHidden()
   }
 })

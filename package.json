@@ -8,6 +8,7 @@
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "benchmark": "node scripts/benchmark.mjs",
     "build": "vite build"
   },
   "dependencies": {

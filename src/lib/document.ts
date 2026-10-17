@@ -6,7 +6,7 @@ export type View = 'split' | 'code' | 'tree'
 export type Path = Array<string | number>
 export type Selection = { code?: JSONEditorSelection; tree?: JSONEditorSelection }
 export type Diagnostic = { kind: 'syntax' | 'duplicate'; message: string; offset: number; line: number; column: number }
-export type Analysis = { revision: number; bytes: number; valid: boolean; diagnostics: Diagnostic[]; depth: number; nodes: number }
+export type Analysis = { revision: number; bytes: number; valid: boolean; diagnostics: Diagnostic[]; depth: number; nodes: number; mode?: 'edit' | 'inspect' | 'unavailable' }
 export type Snapshot = { source: string; selection: Selection }
 export type DocumentState = {
   source: string
