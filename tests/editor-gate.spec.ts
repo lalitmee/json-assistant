@@ -105,6 +105,21 @@ test('view changes preserve selection, and deleting a selected child selects its
   await expect(page.getByTestId('tree-selection')).toContainText('parent')
 })
 
+test('deleting a selected ancestor moves selection to the nearest surviving parent', async ({ page }) => {
+  await source(page, '{"parent":{"child":{"deep":"value"}},"sibling":1}')
+  const tree = page.getByRole('region', { name: 'Tree pane' })
+  const expand = tree.getByRole('button', { name: /Expand or collapse this object/ })
+  await expand.first().click()
+  await expand.last().click()
+  await tree.getByRole('button', { name: '1 prop' }).first().click()
+  await tree.getByRole('button', { name: /Expand or collapse this object/ }).last().click()
+  await tree.getByRole('button', { name: 'value', exact: true }).click()
+  await expect(page.getByTestId('tree-selection')).toContainText('deep')
+  await page.evaluate(() => (window as any).__editorGatePatch([{ op: 'remove', path: '/parent' }]))
+  await expect(page.getByTestId('source')).toContainText('"sibling"')
+  await expect(page.getByTestId('tree-selection')).toHaveText(JSON.stringify({ type: 'inside', path: [] }))
+})
+
 test('editor context-menu undo routes through shared history', async ({ page }) => {
   await source(page, '{"item":"value"}')
   const tree = page.getByRole('region', { name: 'Tree pane' })

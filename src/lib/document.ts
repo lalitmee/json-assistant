@@ -63,6 +63,30 @@ export function deletedSelection(selection?: JSONEditorSelection): JSONEditorSel
   return { type: SelectionType.inside, path: selection.path.slice(0, -1) }
 }
 
+export function fallbackSelection(
+  selection: JSONEditorSelection | undefined,
+  source: string,
+  removedPaths: string[][] = []
+): JSONEditorSelection | undefined {
+  if (!selection || selection.type === 'text' || selection.type === 'multi') return selection
+  const value = parse(source)
+  const removed = removedPaths.find(path => path.length <= selection.path.length &&
+    path.every((part, index) => part === selection.path[index]))
+  let path = removed ? removed.slice(0, -1) : selection.path
+  const exists = (candidate: string[]) => {
+    let current: any = value
+    for (const key of candidate) {
+      if (current === null || (typeof current !== 'object') || !Object.hasOwn(current, key)) return false
+      current = current[key]
+    }
+    return true
+  }
+  while (!exists(path) && path.length) path = path.slice(0, -1)
+  return path.length === selection.path.length && !removed
+    ? selection
+    : { type: SelectionType.inside, path }
+}
+
 export function clampSelection(selection: Selection, source: string): Selection {
   const code = selection.code
   if (!code || code.type !== 'text') return selection

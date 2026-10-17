@@ -3,7 +3,7 @@
   import type { Content, JSONEditorSelection, OnChangeStatus } from 'svelte-jsoneditor'
   import type { JSONPatchDocument } from 'immutable-json-patch'
   import { parse, stringify } from 'lossless-json'
-  import { applyTreePatch, deletedSelection, type DocumentState, type Selection, type Snapshot, type View } from './document'
+  import { applyTreePatch, fallbackSelection, type DocumentState, type Selection, type Snapshot, type View } from './document'
 
   export let state: DocumentState
   export let view: View
@@ -26,7 +26,8 @@
     suppressEditorCallback = true
     try { treeEditor.patch(operations) } finally { suppressEditorCallback = false }
     const next = applyTreePatch(baseSource, operations)
-    onEdit({ source: next, selection: state.selection })
+    const selection = fallbackSelection(state.selection.tree, next, removedPaths(operations))
+    onEdit({ source: next, selection: { ...state.selection, tree: selection } })
     return next
   }
 
@@ -57,29 +58,23 @@
     tree = content
     code = { text }
     sourceVersion = text
-    const selection = state.selection.tree
-    if (selection && selection.type !== 'text' && selection.type !== 'multi') {
-      try {
-        let value: any = parse(text)
-        for (const key of selection.path) value = value?.[key]
-        const selectedPath = JSON.stringify(selection.path)
-        const removed = status.patchResult.redo.some(operation => operation.op === 'remove' &&
-          JSON.stringify(operation.path.slice(1).split('/').map(part => part.replace(/~1/g, '/').replace(/~0/g, '~'))) === selectedPath)
-        if (removed || value === undefined) {
-          const fallback = deletedSelection(selection)
-          if (fallback) onSelection({ ...state.selection, tree: fallback })
-        }
-      } catch { /* invalid tree edits are rejected by the editor */ }
-    }
-    if (text !== state.source) onEdit({ source: text, selection: state.selection })
+    const selection = fallbackSelection(state.selection.tree, text, removedPaths(status.patchResult.redo))
+    const nextSelection = selection === state.selection.tree ? state.selection : { ...state.selection, tree: selection }
+    if (text !== state.source) onEdit({ source: text, selection: nextSelection })
     else echoCount++
   }
 
   function selected(which: 'code' | 'tree', value: JSONEditorSelection | undefined) {
+    if (suppressEditorCallback) return
     onSelection({ ...state.selection, [which]: value })
     if (which === 'tree' && view === 'tree' && value && value.type !== 'text' && value.type !== 'multi') {
       void treeEditor.scrollTo(value.path)
     }
+  }
+
+  function removedPaths(operations: JSONPatchDocument): string[][] {
+    return operations.filter(operation => operation.op === 'remove').map(operation =>
+      operation.path.slice(1).split('/').map(part => part.replace(/~1/g, '/').replace(/~0/g, '~')))
   }
 
   function contextMenu(items: any[]) {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { SelectionType, type JSONEditorSelection } from 'svelte-jsoneditor'
 import { parse } from 'lossless-json'
-import { acceptCompletion, applyTreePatch, clampSelection, commit, createDocument, deletedSelection, redo, undo } from './document'
+import { acceptCompletion, applyTreePatch, clampSelection, commit, createDocument, deletedSelection, fallbackSelection, redo, undo } from './document'
 
 describe('document history', () => {
   it('keeps chronological source and tree changes undoable from one history', () => {
@@ -22,6 +22,12 @@ describe('document history', () => {
   it('moves a deleted tree selection to its surviving parent', () => {
     const selection: JSONEditorSelection = { type: SelectionType.key, path: ['items', '1'] }
     expect(deletedSelection(selection)).toEqual({ type: SelectionType.inside, path: ['items'] })
+  })
+
+  it('walks to the nearest surviving ancestor when a selected ancestor is removed', () => {
+    const selection: JSONEditorSelection = { type: SelectionType.key, path: ['parent', 'child', 'deep'] }
+    expect(fallbackSelection(selection, '{"sibling":1}', [['parent']]))
+      .toEqual({ type: SelectionType.inside, path: [] })
   })
 
   it('clamps a restored source selection to the restored text length', () => {

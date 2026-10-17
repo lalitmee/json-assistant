@@ -2,12 +2,12 @@
 
 ## Outcome
 
-The minimal two-pane integration passes the Task 1 automated gate in Playwright Chromium and Firefox. Source is authoritative; a tree operation applies its JSON Patch redo operations to the current lossless source value and serializes with `lossless-json`. This preserves unaffected numeric values while allowing whitespace, string escape spelling, and object-member order to normalize.
+The minimal two-pane integration passes the Task 1 automated gate in Playwright's Chromium and Firefox projects. Source is authoritative; a tree operation applies its JSON Patch redo operations to the current lossless source value and serializes with `lossless-json`. This preserves unaffected numeric values while allowing whitespace, string escape spelling, and object-member order to normalize. Selection now walks up to the nearest surviving ancestor if a selected ancestor is removed.
 
 ## Exercised checks
 
 - Shared chronological source/tree undo and redo through toolbar, source shortcut, tree shortcut, and editor context menu.
-- View changes retain the selected tree path; deleting a selected child falls back to its surviving parent.
+- View changes retain the selected tree path; deleting a selected child or ancestor falls back to the nearest surviving parent.
 - Tree replace, object add/remove/rename, and array insertion/movement preserve unaffected values, including `9007199254740993`, `1.2300`, `1e+09`, `-0`, and an escaped string.
 - Invalid and decoded-equivalent duplicate-key source remains exact and does not produce an editable tree.
 - All seven JSON root types; hostile property names; HTML/URL-looking strings; no unexpected network requests or prototype mutation.
@@ -19,17 +19,21 @@ The browser operation test uses the editor's documented `patch` API through a de
 
 ## Commands and results
 
-- `npm run test:e2e -- tests/editor-gate.spec.ts` — **22 passed**: 11 Chromium, 11 Firefox. [Full output](editor-gate-evidence/final-e2e.log)
-- `npm run check` — **0 errors, 0 warnings**. [Output](editor-gate-evidence/check.log)
-- `npm test` — **8 passed**. [Output](editor-gate-evidence/unit.log)
-- `npm run build` — exit 0. Vite reports the existing large main-chunk warning (820.04 kB). [Output](editor-gate-evidence/build.log)
+- `npm run test:e2e -- tests/editor-gate.spec.ts` — **24 passed**: 12 Playwright Chromium, 12 Playwright Firefox.
+- Stable Google Chrome `154.0.8037.97` — **12 passed** using `/usr/bin/google-chrome`.
+- System Firefox `157.0` could not launch under this environment (`CanCreateUserNamespace: EPERM`); Playwright Firefox `157.0` passed all 12 tests. This is an environment launch limitation, not a test assertion failure.
+- `npm run check` — **0 errors, 0 warnings**.
+- `npm test` — **9 passed**.
+- `npm run build` — exit 0. Vite reports the existing large main-chunk warning (820.24 kB).
 - `git diff --check` — pass.
+
+One earlier Chromium run transiently read the invalid draft `{"a":` as `{"a":{}` immediately after `locator.fill`. The focused test passed 11 consecutive retries, and later complete Chromium and Chromium/Firefox runs passed without code changes; the trigger was not established. Keep this as an observed, currently non-reproducible test/editor interaction rather than claiming a root cause.
 
 ## Environment
 
 - Linux; Node `v24.9.0`; npm `11.6.1`.
 - Svelte `5.57.2`; svelte-jsoneditor `3.13.0`; lossless-json `4.3.2`; Vite `8.3.4`; TypeScript `6.0.3`; Vitest `5.0.5`; Playwright `1.64.1`.
-- Playwright bundled Chromium `156.0.8078.4` and Firefox `157.0`.
+- Playwright bundled Chromium `156.0.8078.4` and Firefox `157.0`; system Google Chrome `154.0.8037.97` and system Firefox `157.0`.
 
 ## IME limitation
 
