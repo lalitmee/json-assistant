@@ -111,8 +111,9 @@ Generated: 2026-10-17. Status: initial desk research, not an approved product de
 - [x] Present design sections and obtain approval.
 - [x] Write the specification and roadmap from the approved sections; include them in the design-document commit.
 - [x] Self-review the specification for ambiguity, consistency, and scope.
-- [ ] Obtain user review of the written specification.
-- [ ] Invoke writing-plans; obtain plan review and an execution-method choice before implementation.
+- [x] Obtain user review of the written specification.
+- [x] Invoke writing-plans and write the implementation plan.
+- [ ] Obtain plan review and an execution-method choice before implementation.
 
 ## Artifact and environment notes
 

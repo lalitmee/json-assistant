@@ -2,7 +2,7 @@
 
 Date: 2026-10-17
 
-Status: Design sections approved in conversation; written specification awaiting user review.
+Status: Written specification approved by the user on 2026-10-17. Implementation requires plan review and an execution-method choice.
 
 ## Objective and agreed intent
 
