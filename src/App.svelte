@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import EditorPanes from "./lib/EditorPanes.svelte";
   import type { JSONPatchDocument } from "immutable-json-patch";
   import {
@@ -16,10 +16,40 @@
   import { createProcessor } from "./lib/processing";
   import { copyText, downloadText, readFile, subtreeSource } from "./lib/io";
   import type { ProcessRequest, ProcessResult } from "./lib/process";
+  import {
+    defaultPreferences,
+    loadPreferences,
+    resolveView,
+    savePreferences,
+    type Preferences,
+  } from "./lib/preferences";
 
   let document = createDocument();
   let view: View = "split";
   let viewChosen = false;
+  let preferences: Preferences = { ...defaultPreferences };
+  let page: "workspace" | "settings" = "workspace";
+  let settingsTrigger: HTMLButtonElement;
+  let settingsHeading: HTMLHeadingElement;
+  function changePreference(next: Partial<Preferences>) {
+    preferences = { ...preferences, ...next };
+    if (next.view) view = next.view;
+    try {
+      savePreferences(window.localStorage, preferences);
+    } catch {
+      /* storage blocked */
+    }
+  }
+  async function showSettings() {
+    page = "settings";
+    await tick();
+    settingsHeading.focus();
+  }
+  async function showWorkspace() {
+    page = "workspace";
+    await tick();
+    settingsTrigger.focus();
+  }
   let panes: InstanceType<typeof EditorPanes>;
   let processor: ReturnType<typeof createProcessor>;
   let busy = false;
@@ -216,8 +246,15 @@
   function chooseView(next: View) {
     view = next;
     viewChosen = true;
+    changePreference({ view: next });
   }
   onMount(() => {
+    try {
+      preferences = loadPreferences(window.localStorage);
+    } catch {
+      preferences = { ...defaultPreferences };
+    }
+    viewChosen = !!preferences.view;
     processor = createProcessor();
     window.addEventListener("keydown", shortcut, true);
     beforeUnloadHandler = (event: BeforeUnloadEvent) => {
@@ -226,8 +263,9 @@
     };
     syncBeforeUnload();
     const resize = () => {
-      if (!viewChosen) view = window.innerWidth >= 900 ? "split" : "code";
+      if (!viewChosen) view = resolveView(preferences, window.innerWidth);
     };
+    view = resolveView(preferences, window.innerWidth);
     resize();
     window.addEventListener("resize", resize);
     if (import.meta.env.DEV) {
@@ -254,7 +292,7 @@
   });
 </script>
 
-<main class="workspace">
+<main class="workspace" hidden={page === "settings"}>
   <header class="workspace-header">
     <div class="identity">
       <span class="brand-mark" aria-hidden="true">{"{ }"}</span>
@@ -314,21 +352,14 @@
           replaceDocument("");
         }}>Clear</button
       >
+      <button
+        bind:this={settingsTrigger}
+        aria-label="Open settings"
+        onclick={showSettings}>Settings</button
+      >
     </div>
   </header>
   <div class="workspace-navigation">
-    <nav aria-label="Workspace layout">
-      <button
-        aria-pressed={view === "split"}
-        onclick={() => chooseView("split")}>Split</button
-      >
-      <button aria-pressed={view === "code"} onclick={() => chooseView("code")}
-        >Code</button
-      >
-      <button aria-pressed={view === "tree"} onclick={() => chooseView("tree")}
-        >Tree</button
-      >
-    </nav>
     <span
       >{document.analysis?.valid ? "Valid JSON" : "Draft"} · {document.analysis
         ?.bytes ?? new TextEncoder().encode(document.source).length} bytes</span
@@ -437,4 +468,92 @@
   </section>
   <pre data-testid="source">{document.source}</pre>
   <output data-testid="revision" hidden>{document.revision}</output>
+</main>
+<main class="settings-page" aria-label="Settings" hidden={page !== "settings"}>
+  <header class="settings-header">
+    <button aria-label="Back to workspace" onclick={showWorkspace}
+      >← Back to workspace</button
+    >
+    <span>JSON workspace / Preferences</span>
+  </header>
+  <div class="settings-content">
+    <h1 bind:this={settingsHeading} tabindex="-1">Settings</h1>
+    <p>
+      Preferences stay in this browser. Your JSON document is never saved
+      automatically.
+    </p>
+    <section class="settings-card" aria-label="Workspace layout">
+      <h2>Workspace view</h2>
+      <p>Choose how you work with your document.</p>
+      <div class="settings-choices">
+        <button
+          aria-pressed={view === "split"}
+          onclick={() => chooseView("split")}>Split</button
+        >
+        <button
+          aria-pressed={view === "code"}
+          onclick={() => chooseView("code")}>Code</button
+        >
+        <button
+          aria-pressed={view === "tree"}
+          onclick={() => chooseView("tree")}>Tree</button
+        >
+      </div>
+    </section>
+    <section class="settings-card" aria-label="Appearance preferences">
+      <h2>Appearance</h2>
+      <label
+        >Mode <select
+          value={preferences.appearance}
+          onchange={(e) =>
+            changePreference({
+              appearance: e.currentTarget.value as Preferences["appearance"],
+            })}
+        >
+          <option value="system">System</option><option value="dark"
+            >Dark</option
+          ><option value="light">Light</option>
+        </select></label
+      >
+      <label
+        >Application palette <select
+          value={preferences.palette}
+          onchange={(e) =>
+            changePreference({
+              palette: e.currentTarget.value as Preferences["palette"],
+            })}
+        >
+          <option value="ocean">Ocean</option><option value="graphite"
+            >Graphite</option
+          ><option value="forest">Forest</option>
+        </select></label
+      >
+      <label
+        >Code and Tree theme <select
+          value={preferences.editorTheme}
+          onchange={(e) =>
+            changePreference({
+              editorTheme: e.currentTarget.value as Preferences["editorTheme"],
+            })}
+        >
+          <option value="midnight">Midnight</option><option value="orchid"
+            >Orchid</option
+          ><option value="paper">Paper</option>
+        </select></label
+      >
+      <label
+        >Editor font <select
+          value={preferences.font}
+          onchange={(e) =>
+            changePreference({
+              font: e.currentTarget.value as Preferences["font"],
+            })}
+        >
+          <option value="system">System monospace</option><option
+            value="local-a">Local font A</option
+          ><option value="local-b">Local font B</option>
+        </select></label
+      >
+    </section>
+  </div>
 </main>

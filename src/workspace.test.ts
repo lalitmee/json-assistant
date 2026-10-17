@@ -12,4 +12,15 @@ describe("workspace controls", () => {
       body.indexOf('class="panes"'),
     );
   });
+  it("renders settings while preserving the workspace pane subtree", () => {
+    const { body } = render(App);
+    expect(body).toContain('aria-label="Open settings"');
+    expect(body).toContain('aria-label="Settings"');
+    expect(body).toContain("Preferences stay in this browser");
+    expect(body.indexOf('aria-label="Workspace layout"')).toBeGreaterThan(
+      body.indexOf('aria-label="Settings"'),
+    );
+    expect(body).toContain('aria-label="Source pane"');
+    expect(body).toContain('aria-label="Back to workspace"');
+  });
 });
