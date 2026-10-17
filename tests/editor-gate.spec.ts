@@ -20,6 +20,17 @@ async function changeSibling(page: Page) {
 
 test.beforeEach(async ({ page }) => { await page.goto('/') })
 
+test('worker formatting and minification preserve lossless source tokens', async ({ page }) => {
+  const compact = String.raw`{"n":1.2300,"s":"\u0061"}`
+  await source(page, compact)
+  const formatted = await page.evaluate(() => (window as any).__editorGateProcess('format'))
+  expect(formatted.source).toBe('{\n  "n": 1.2300,\n  "s": "\\u0061"\n}')
+  await expect(page.getByTestId('source')).toHaveText(formatted.source)
+  const minified = await page.evaluate(() => (window as any).__editorGateProcess('minify'))
+  expect(minified.source).toBe(compact)
+  await expect(page.getByTestId('source')).toHaveText(compact)
+})
+
 test('shared chronological history', async ({ page }) => {
   await source(page, '{"sibling":"before"}')
   await changeSibling(page)

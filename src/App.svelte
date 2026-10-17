@@ -2,11 +2,14 @@
   import { onMount } from 'svelte'
   import EditorPanes from './lib/EditorPanes.svelte'
   import type { JSONPatchDocument } from 'immutable-json-patch'
-  import { commit, createDocument, redo, undo, type Selection, type View } from './lib/document'
+import { acceptAnalysis, acceptCompletion, commit, createDocument, redo, undo, type Selection, type View } from './lib/document'
+import { createProcessor } from './lib/processing'
+import type { ProcessRequest } from './lib/process'
 
   let document = createDocument()
   let view: View = 'split'
   let panes: InstanceType<typeof EditorPanes>
+  let processor: ReturnType<typeof createProcessor>
   function edit(snapshot: { source: string; selection: Selection }) { document = commit(document, snapshot) }
   function select(selection: Selection) { document = { ...document, selection } }
   function history(direction: 'undo' | 'redo') { document = direction === 'undo' ? undo(document) : redo(document) }
@@ -18,9 +21,19 @@
     }
   }
   onMount(() => {
+    processor = createProcessor()
     window.addEventListener('keydown', shortcut, true)
-    if (import.meta.env.DEV) (window as any).__editorGatePatch = (operations: JSONPatchDocument) => panes.applyPatch(operations)
-    return () => window.removeEventListener('keydown', shortcut, true)
+    if (import.meta.env.DEV) {
+      (window as any).__editorGatePatch = (operations: JSONPatchDocument) => panes.applyPatch(operations)
+      ;(window as any).__editorGateProcess = async (operation: ProcessRequest['operation']) => {
+        const request = { revision: document.revision, source: document.source, operation }
+        const result = await processor.run(request)
+        document = acceptAnalysis(document, result.analysis)
+        if (result.source !== undefined) document = acceptCompletion(document, { revision: request.revision, source: result.source })
+        return result
+      }
+    }
+    return () => { processor.dispose(); window.removeEventListener('keydown', shortcut, true) }
   })
 </script>
 

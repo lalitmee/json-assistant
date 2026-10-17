@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { SelectionType, type JSONEditorSelection } from 'svelte-jsoneditor'
 import { parse } from 'lossless-json'
-import { acceptCompletion, applyTreePatch, clampSelection, commit, createDocument, deletedSelection, fallbackSelection, redo, undo } from './document'
+import { acceptAnalysis, acceptCompletion, applyTreePatch, clampSelection, commit, createDocument, deletedSelection, fallbackSelection, redo, undo } from './document'
 
 describe('document history', () => {
+  it('rejects analysis from a stale revision after edits and undo', () => {
+    const first = createDocument('{}')
+    const edited = commit(first, { source: '[]', selection: {} })
+    expect(acceptAnalysis(edited, { revision: 0, bytes: 2, valid: true, diagnostics: [], depth: 0, nodes: 1 })).toBe(edited)
+    const restored = undo(edited)
+    expect(acceptAnalysis(restored, { revision: edited.revision, bytes: 2, valid: true, diagnostics: [], depth: 0, nodes: 1 })).toBe(restored)
+  })
   it('keeps chronological source and tree changes undoable from one history', () => {
     let state = createDocument('{}')
     state = commit(state, { source: '{"a":1}', selection: {} })
