@@ -17,6 +17,10 @@
   function edit(snapshot: { source: string; selection: Selection }) { document = commit(document, snapshot) }
   function select(selection: Selection) { document = { ...document, selection } }
   function history(direction: 'undo' | 'redo') { document = direction === 'undo' ? undo(document) : redo(document) }
+  function applyResult(revision: number, result: ProcessResult) {
+    document = acceptAnalysis(document, result.analysis)
+    if (result.analysis.valid && result.source !== undefined) document = acceptCompletion(document, { revision, source: result.source })
+  }
   async function runOperation(operation: ProcessRequest['operation']): Promise<ProcessResult> {
     const id = ++processId
     const request = { revision: document.revision, source: document.source, operation }
@@ -24,10 +28,7 @@
     document = { ...document, processing: true }
     try {
       const result = await processor.run(request)
-      if (id === processId) {
-        document = acceptAnalysis(document, result.analysis)
-        if (result.analysis.valid && result.source !== undefined) document = acceptCompletion(document, { revision: request.revision, source: result.source })
-      }
+      if (id === processId) applyResult(request.revision, result)
       return result
     } finally {
       if (id === processId) {
@@ -52,6 +53,8 @@
     if (import.meta.env.DEV) {
       ;(window as any).__editorGatePatch = (operations: JSONPatchDocument) => panes.applyPatch(operations);
       (window as any).__editorGateProcess = runOperation
+      ;(window as any).__editorGateApplyResult = (result: ProcessResult) => applyResult(result.analysis.revision, result)
+      ;(window as any).__editorGateParsePath = (path: string) => panes.parsePath(path)
     }
     return () => { processor.dispose(); window.removeEventListener('keydown', shortcut, true) }
   })

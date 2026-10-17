@@ -78,9 +78,11 @@
     const selection = state.selection.tree
     if (selection && selection.type !== 'text' && selection.type !== 'multi') {
       const path = stringifyJSONPath(selection.path)
-      onCopyPath(stringifyJSONPath(parseJSONPath(path)))
+      onCopyPath(stringifyJSONPath(parsePath(path)))
     }
   }
+
+  export function parsePath(path: string) { return parseJSONPath(path) }
 
   function openSearch() {
     treeEditor.focus()

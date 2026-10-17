@@ -45,9 +45,35 @@ test('invalid source remains exact and disables tree edits while diagnostics sta
   await expect(page.getByRole('region', { name: 'Tree pane' }).getByRole('tree')).toBeVisible()
 })
 
+test('out-of-order analysis and completion cannot replace the latest source or tree revision', async ({ page }) => {
+  await source(page, '{"first":1}')
+  const oldRevision = Number(await page.getByTestId('revision').textContent())
+  await source(page, '{"latest":2}')
+  await expect(page.getByRole('treeitem', { name: 'latest : 2', exact: true })).toBeVisible()
+
+  await page.evaluate(revision => (window as any).__editorGateApplyResult({
+    analysis: { revision, bytes: 12, valid: false, diagnostics: [{ kind: 'syntax', message: 'stale', offset: 0, line: 1, column: 1 }], depth: 0, nodes: 1 }
+  }), oldRevision)
+  await expect(page.getByText(/Valid JSON ·/)).toBeVisible()
+  await page.evaluate(revision => (window as any).__editorGateApplyResult({
+    analysis: { revision, bytes: 10, valid: true, diagnostics: [], depth: 0, nodes: 1 },
+    source: '{"stale":0}'
+  }), oldRevision)
+
+  await expect(page.getByTestId('source')).toHaveText('{"latest":2}')
+  await expect(page.getByRole('treeitem', { name: 'latest : 2', exact: true })).toBeVisible()
+  await expect(page.getByTestId('diagnostic')).toHaveCount(0)
+})
+
 test('search finds text and value in collapsed tree branches and reveals the match', async ({ page }) => {
   await source(page, '{"outer":{"needle":"value"}}')
   const tree = page.getByRole('region', { name: 'Tree pane' })
+  const outer = tree.getByRole('treeitem', { name: /outer/ }).last()
+  const collapseOuter = outer.getByRole('button', { name: /Expand or collapse/ })
+  await collapseOuter.click()
+  await expect(tree.getByRole('treeitem', { name: 'needle : value', exact: true })).toBeVisible()
+  await collapseOuter.click()
+  await expect(tree.getByRole('treeitem', { name: 'needle : value', exact: true })).toHaveCount(0)
   await expect(tree.getByRole('button', { name: /Transform|Sort|Schema|Query|Repair/i })).toHaveCount(0)
   await page.getByRole('button', { name: /Search/ }).click()
   const search = page.getByPlaceholder('Find')
@@ -69,5 +95,8 @@ test('path action copies an escaped JSONPath for selected keys', async ({ page }
   const tree = page.getByRole('region', { name: 'Tree pane' })
   await tree.getByRole('treeitem', { name: 'a.\"b\\c : 1', exact: true }).click()
   await page.getByRole('button', { name: /Copy path/ }).click()
-  await expect.poll(() => page.evaluate(() => (window as any).__clipboardText)).toContain('a')
+  const copiedPath = await page.evaluate(() => (window as any).__clipboardText)
+  expect(copiedPath).toBe(String.raw`["a.\"b\c"]`)
+  await expect.poll(() => page.evaluate(path => (window as any).__editorGateParsePath(path), copiedPath))
+    .toEqual(['a."b\\c'])
 })
