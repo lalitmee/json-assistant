@@ -116,9 +116,15 @@ test('chooses a responsive default without overriding an explicit view', async (
 test('stacks narrow split and preserves source/history across view changes', async ({ page }) => {
   await source(page, '{"a":1}')
   await page.getByRole('button', { name: 'Tree', exact: true }).click()
+  await page.getByRole('treeitem', { name: 'a : 1', exact: true }).click()
+  const selection = await page.getByTestId('tree-selection').textContent()
   await page.getByRole('button', { name: 'Split', exact: true }).click()
   await expect(page.getByTestId('source')).toHaveText('{"a":1}')
-  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeEnabled()
+  await expect(page.getByTestId('tree-selection')).toHaveText(selection!)
+  await page.getByRole('button', { name: 'Code', exact: true }).click()
+  await page.getByRole('button', { name: 'Tree', exact: true }).click()
+  await expect(page.getByTestId('tree-selection')).toHaveText(selection!)
+  await page.getByRole('button', { name: 'Split', exact: true }).click()
   await page.setViewportSize({ width: 500, height: 800 })
   const panes = page.locator('.panes')
   const geometry = await panes.evaluate(element => {
@@ -127,6 +133,10 @@ test('stacks narrow split and preserves source/history across view changes', asy
     return { stacked: treePane.top >= sourcePane.bottom, overflow: element.scrollWidth > element.clientWidth }
   })
   expect(geometry).toEqual({ stacked: true, overflow: false })
+  await page.getByRole('button', { name: 'Undo', exact: true }).click()
+  await expect(page.getByTestId('source')).toHaveText('{}')
+  await page.getByRole('button', { name: 'Redo', exact: true }).click()
+  await expect(page.getByTestId('source')).toHaveText('{"a":1}')
 })
 
 test('exposes keyboard-operable divider and named, reachable layout controls', async ({ page }) => {
@@ -149,6 +159,8 @@ test('exposes keyboard-operable divider and named, reachable layout controls', a
   expect(await divider.getAttribute('aria-valuenow')).toBe(maximum)
   await tree.focus()
   await page.keyboard.press('Tab')
+  await expect(divider).toBeFocused()
+  await page.keyboard.press('Tab')
   await expect(page.locator('.cm-content:visible').first()).toBeFocused()
 })
 
@@ -168,32 +180,38 @@ test('honors system color preference and refreshes a hidden source editor', asyn
 test('undo shortcut remains available after focusing source and tree controls', async ({ page }) => {
   await source(page, '{"value":1}')
   await source(page, '{"value":2}')
+  await page.keyboard.press('Control+z')
+  await expect.poll(() => page.getByTestId('source').textContent().then(text => JSON.parse(text!).value)).toBe(1)
+  await page.keyboard.press('Control+Shift+z')
+  await expect.poll(() => page.getByTestId('source').textContent().then(text => JSON.parse(text!).value)).toBe(2)
   await page.getByRole('button', { name: 'Tree', exact: true }).click()
   await page.getByRole('treeitem', { name: 'value : 2', exact: true }).click()
   await page.keyboard.press('Control+z')
   await expect.poll(() => page.getByTestId('source').textContent().then(text => JSON.parse(text!).value)).toBe(1)
 })
 
-test('Tab navigation reaches both editors without a pointer', async ({ page }) => {
-  await expect(page.getByRole('button', { name: 'Split', exact: true })).toHaveAttribute('aria-pressed', 'true')
-  let treeButtonFocused = false
+test('keyboard navigation reaches and operates the divider and source editor', async ({ page }) => {
+  const split = page.getByRole('button', { name: 'Split', exact: true })
+  let splitFocused = false
   for (let i = 0; i < 20; i++) {
     await page.keyboard.press('Tab')
-    if (await page.getByRole('button', { name: 'Tree', exact: true }).evaluate(element => element === document.activeElement)) {
-      treeButtonFocused = true
-      break
-    }
+    if (await split.evaluate(element => element === document.activeElement)) { splitFocused = true; break }
   }
-  expect(treeButtonFocused).toBe(true)
+  expect(splitFocused).toBe(true)
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('button', { name: 'Tree', exact: true })).toHaveAttribute('aria-pressed', 'true')
-  let treePaneFocused = false
+  await expect(split).toHaveAttribute('aria-pressed', 'true')
+  const divider = page.getByRole('separator', { name: 'Resize panes' })
+  let dividerFocused = false
   for (let i = 0; i < 12; i++) {
     await page.keyboard.press('Tab')
-    if (await page.getByRole('region', { name: 'Tree pane' }).evaluate(element => element === document.activeElement)) {
-      treePaneFocused = true
-      break
-    }
+    if (await divider.evaluate(element => element === document.activeElement)) { dividerFocused = true; break }
   }
-  expect(treePaneFocused).toBe(true)
+  expect(dividerFocused).toBe(true)
+  await page.keyboard.press('ArrowRight')
+  const increased = Number(await divider.getAttribute('aria-valuenow'))
+  expect(increased).toBeGreaterThan(50)
+  await page.keyboard.press('Home')
+  expect(await divider.getAttribute('aria-valuenow')).toBe('25')
+  await page.keyboard.press('Tab')
+  await expect(page.locator('[aria-label="Source pane"] .cm-content')).toBeFocused()
 })

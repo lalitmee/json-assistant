@@ -124,12 +124,6 @@
 </script>
 
 <div class="panes" data-view={view} style={`--split: ${split}%`}>
-  <section aria-label="Source pane" hidden={view === 'tree'}>
-    <h2>Source</h2>
-    <JSONEditor bind:this={codeEditor} content={code} selection={state.selection.code} mode={Mode.text} {parser}
-      mainMenuBar={false} askToFormat={false} onChange={sourceChanged} onSelect={value => selected('code', value)}
-      onRenderContextMenu={contextMenu} />
-  </section>
   {#if view === 'split'}
     <!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_no_noninteractive_element_interactions -->
     <div class="divider" role="separator" aria-label="Resize panes" aria-orientation="vertical"
@@ -137,6 +131,12 @@
       onkeydown={dividerKey} onpointerdown={event => event.currentTarget.setPointerCapture(event.pointerId)}
       onpointermove={resizeDivider}></div>
   {/if}
+  <section aria-label="Source pane" hidden={view === 'tree'}>
+    <h2>Source</h2>
+    <JSONEditor bind:this={codeEditor} content={code} selection={state.selection.code} mode={Mode.text} {parser}
+      mainMenuBar={false} askToFormat={false} onChange={sourceChanged} onSelect={value => selected('code', value)}
+      onRenderContextMenu={contextMenu} />
+  </section>
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
   <section aria-label="Tree pane" tabindex="0" hidden={view === 'code'}>
     <h2>Tree</h2>

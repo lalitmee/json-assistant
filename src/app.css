@@ -20,7 +20,11 @@ button[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: 1px;
 :focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
 nav { display: flex; gap: .25rem; }
 .panes { display: grid; grid-template-columns: minmax(0, var(--split)) 12px minmax(0, 1fr); gap: .5rem; }
+.panes [aria-label="Source pane"] { grid-column: 1; grid-row: 1; }
+.panes [aria-label="Tree pane"] { grid-column: 3; grid-row: 1; }
+.panes .divider { grid-column: 2; grid-row: 1; }
 .panes[data-view="code"], .panes[data-view="tree"] { grid-template-columns: minmax(0, 1fr); }
+.panes[data-view="code"] [aria-label="Source pane"], .panes[data-view="tree"] [aria-label="Tree pane"] { grid-column: 1; }
 .panes section { min-width: 0; height: 65vh; display: flex; flex-direction: column; }
 .panes section[hidden] { display: none; }
 .divider { cursor: col-resize; touch-action: none; border-radius: .25rem; }
@@ -30,6 +34,7 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; }
   .panes[data-view="split"] { grid-template-columns: minmax(0, 1fr); }
   .panes[data-view="split"] .divider { display: none; }
   .panes[data-view="split"] section { height: 55vh; }
+  .panes[data-view="split"] section { grid-column: 1; grid-row: auto; }
 }
 
 @media (prefers-color-scheme: dark) {
