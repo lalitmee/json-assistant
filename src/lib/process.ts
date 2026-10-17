@@ -68,6 +68,7 @@ export function processSource(request: ProcessRequest): ProcessResult {
       else if (kind === ':') { /* next token is the property's value */ }
     }
   }
+  valid = diagnostics.length === 0
   const analysis: Analysis = { revision, bytes: new TextEncoder().encode(source).length, valid, diagnostics, depth: maxDepth, nodes }
   if (operation === 'analyze' || !valid) return { analysis }
   if (operation === 'format') return { analysis, source: applyEdits(source, format(source, undefined, { insertSpaces: true, tabSize: 2, eol: '\n' })) }

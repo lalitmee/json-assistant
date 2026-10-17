@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { JSONEditor, Mode, isTextContent } from 'svelte-jsoneditor'
+  import { JSONEditor, Mode, isTextContent, stringifyJSONPath, parseJSONPath } from 'svelte-jsoneditor'
   import type { Content, JSONEditorSelection, OnChangeStatus } from 'svelte-jsoneditor'
   import type { JSONPatchDocument } from 'immutable-json-patch'
   import { parse, stringify } from 'lossless-json'
@@ -10,6 +10,7 @@
   export let onEdit: (snapshot: Snapshot) => void
   export let onSelection: (selection: Selection) => void
   export let onHistory: (direction: 'undo' | 'redo') => void
+  export let onCopyPath: (path: string) => void
 
   const parser = { parse, stringify }
   let code: Content = { text: state.source }
@@ -39,6 +40,7 @@
     if (codeEditor) codeEditor.update(code)
     if (treeEditor && !unavailable) treeEditor.update(tree)
   }
+  $: unavailable = state.analysis?.revision !== state.revision || !state.analysis.valid
 
   $: if (codeEditor) codeEditor.select(state.selection.code)
   $: if (treeEditor) treeEditor.select(state.selection.tree)
@@ -72,13 +74,27 @@
     }
   }
 
+  function copySelectedPath() {
+    const selection = state.selection.tree
+    if (selection && selection.type !== 'text' && selection.type !== 'multi') {
+      const path = stringifyJSONPath(selection.path)
+      onCopyPath(stringifyJSONPath(parseJSONPath(path)))
+    }
+  }
+
+  function openSearch() {
+    treeEditor.focus()
+    document.activeElement?.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', ctrlKey: true, bubbles: true }))
+  }
+
   function removedPaths(operations: JSONPatchDocument): string[][] {
     return operations.filter(operation => operation.op === 'remove').map(operation =>
       operation.path.slice(1).split('/').map(part => part.replace(/~1/g, '/').replace(/~0/g, '~')))
   }
 
   function contextMenu(items: any[]) {
-    return [...items.map(item => item.type === 'button' && item.text?.toLowerCase() === 'undo'
+    const safeItems = items.filter(item => !/repair|transform|query|schema/i.test(item.text ?? item.title ?? ''))
+    return [...safeItems.map(item => item.type === 'button' && item.text?.toLowerCase() === 'undo'
       ? { ...item, onClick: () => onHistory('undo') }
       : item.type === 'button' && item.text?.toLowerCase() === 'redo'
         ? { ...item, onClick: () => onHistory('redo') }
@@ -87,6 +103,7 @@
     { type: 'button', text: 'Undo', onClick: () => onHistory('undo') },
     { type: 'button', text: 'Redo', onClick: () => onHistory('redo') }]
   }
+
 </script>
 
 <div class="panes" data-view={view}>
@@ -99,6 +116,8 @@
   <section aria-label="Tree pane" hidden={view === 'code'}>
     <h2>Tree</h2>
     {#if unavailable}<p role="status">Tree unavailable: invalid or duplicate-key source</p>{/if}
+    {#if !unavailable}<button onclick={openSearch}>Search</button>{/if}
+    <button disabled={!state.selection.tree || unavailable} onclick={copySelectedPath}>Copy path</button>
     <div hidden={unavailable}>
       <JSONEditor bind:this={treeEditor} content={tree} selection={state.selection.tree} mode={Mode.tree} {parser}
         mainMenuBar={false} readOnly={unavailable} onRenderContextMenu={contextMenu} onChange={treeChanged}

@@ -19,6 +19,21 @@ describe('document history', () => {
     expect(redo(redo(undo(undo(state)))).source).toBe('{"a":2}')
   })
 
+  it('makes formatted and minified completions one undoable transaction and clears redo on edit', () => {
+    let state = createDocument('{"a":1}')
+    state = acceptCompletion(state, { revision: state.revision, source: '{\n  "a": 1\n}' })
+    expect(undo(state).source).toBe('{"a":1}')
+    state = redo(undo(state))
+    expect(state.source).toBe('{\n  "a": 1\n}')
+    state = acceptCompletion(state, { revision: state.revision, source: '{"a":1}' })
+    expect(undo(state).source).toBe('{\n  "a": 1\n}')
+    state = redo(undo(state))
+    expect(state.source).toBe('{"a":1}')
+    state = undo(state)
+    state = commit(state, { source: '{"b":2}', selection: {} })
+    expect(redo(state)).toBe(state)
+  })
+
   it('ignores cancelled and stale asynchronous completions', () => {
     const state = commit(createDocument('{}'), { source: '{"new":true}', selection: {} })
     expect(acceptCompletion(state, { revision: 0, source: '{"stale":true}' })).toBe(state)

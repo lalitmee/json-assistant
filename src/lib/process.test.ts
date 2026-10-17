@@ -30,11 +30,12 @@ describe('processSource', () => {
   it('reports decoded duplicate keys and rejects editor-unsafe duplicate trees', () => {
     const source = String.raw`{"a":1,"\u0061":2}`
     const result = processSource(request(source))
-    expect(result.analysis).toMatchObject({ valid: true, diagnostics: [{ kind: 'duplicate' }] })
+    expect(result.analysis).toMatchObject({ valid: false, diagnostics: [{ kind: 'duplicate' }] })
+    expect(processSource(request(source, 'format')).source).toBeUndefined()
   })
   it('rejects __proto__ duplicate keys as a safe tree while retaining syntax validity', () => {
     const result = processSource(request('{"__proto__":1,"__proto__":2}'))
-    expect(result.analysis).toMatchObject({ valid: true, diagnostics: [{ kind: 'duplicate' }] })
+    expect(result.analysis).toMatchObject({ valid: false, diagnostics: [{ kind: 'duplicate' }] })
   })
   it('preserves huge numbers, exponent, negative zero, nested/string punctuation, unicode and numeric-looking keys', () => {
     const source = String.raw`{"01":9007199254740993123,"e":1e+09,"z":-0,"s":"{\"x\"}\\n","é":true}`
