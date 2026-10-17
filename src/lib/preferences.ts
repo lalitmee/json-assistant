@@ -4,7 +4,7 @@ export type Preferences = {
   appearance: "system" | "dark" | "light";
   palette: "ocean" | "graphite" | "forest";
   editorTheme: "midnight" | "orchid" | "paper";
-  font: "system" | "local-a" | "local-b";
+  font: "system" | "jetbrains" | "fantasque";
   view?: View;
 };
 
@@ -39,7 +39,7 @@ export function loadPreferences(
       editorTheme: ["midnight", "orchid", "paper"].includes(value.editorTheme)
         ? value.editorTheme
         : defaultPreferences.editorTheme,
-      font: ["system", "local-a", "local-b"].includes(value.font)
+      font: ["system", "jetbrains", "fantasque"].includes(value.font)
         ? value.font
         : defaultPreferences.font,
       ...(["split", "code", "tree"].includes(value.view)

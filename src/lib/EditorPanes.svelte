@@ -12,6 +12,7 @@
     OnChangeStatus,
   } from "svelte-jsoneditor";
   import type { JSONPatchDocument } from "immutable-json-patch";
+  import type { Preferences } from "./preferences";
   import { parse, stringify } from "lossless-json";
   import {
     applyTreePatch,
@@ -24,6 +25,8 @@
 
   export let state: DocumentState;
   export let view: View;
+  export let editorTheme: Preferences["editorTheme"];
+  export let font: Preferences["font"];
   export let onEdit: (snapshot: Snapshot) => void;
   export let onSelection: (selection: Selection) => void;
   export let onHistory: (direction: "undo" | "redo") => void;
@@ -230,7 +233,13 @@
   }
 </script>
 
-<div class="panes" data-view={view} style={`--split: ${split}%`}>
+<div
+  class="panes"
+  data-view={view}
+  data-editor-theme={editorTheme}
+  data-editor-font={font}
+  style={`--split: ${split}%`}
+>
   {#if view === "split"}
     <!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_no_noninteractive_element_interactions -->
     <div
@@ -252,6 +261,27 @@
     <div class="pane-header">
       <h2>Code <small>Source</small></h2>
       <div class="pane-actions">
+        <span class="history-label">Document</span>
+        <button
+          class="icon-button"
+          aria-label="Undo document change"
+          title="Undo document change (Ctrl/⌘+Z)"
+          disabled={!state.past.length}
+          onclick={() => onHistory("undo")}
+          ><svg viewBox="0 0 24 24" aria-hidden="true"
+            ><path d="M9 8 4 12l5 4M4 12h10a5 5 0 0 1 0 10" /></svg
+          ></button
+        >
+        <button
+          class="icon-button"
+          aria-label="Redo document change"
+          title="Redo document change (Ctrl/⌘+Shift+Z)"
+          disabled={!state.future.length}
+          onclick={() => onHistory("redo")}
+          ><svg viewBox="0 0 24 24" aria-hidden="true"
+            ><path d="m15 8 5 4-5 4m5-4H10a5 5 0 0 0 0 10" /></svg
+          ></button
+        >
         <button
           disabled={!state.analysis?.valid || state.processing}
           onclick={onFormat}>Format</button
@@ -279,7 +309,14 @@
     <div class="pane-header">
       <h2>Tree <small>Structure</small></h2>
       <div class="pane-actions">
-        {#if !unavailable}<button onclick={openSearch}>Search fields</button
+        {#if !unavailable}<button
+            class="icon-button"
+            aria-label="Search fields"
+            title="Search fields"
+            onclick={openSearch}
+            ><svg viewBox="0 0 24 24" aria-hidden="true"
+              ><circle cx="11" cy="11" r="7" /><path d="m16 16 5 5" /></svg
+            ></button
           >{/if}
       </div>
     </div>
@@ -306,8 +343,16 @@
         ></button
       >
       <button
+        class="icon-button"
+        aria-label="Copy subtree"
+        title="Copy subtree"
         disabled={!state.selection.tree || unavailable}
-        onclick={copySelectedSubtree}>Copy subtree</button
+        onclick={copySelectedSubtree}
+        ><svg viewBox="0 0 24 24" aria-hidden="true"
+          ><rect x="8" y="8" width="12" height="12" rx="2" /><path
+            d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"
+          /></svg
+        ></button
       >
     </div>
     <div class="tree-editor" hidden={unavailable}>
