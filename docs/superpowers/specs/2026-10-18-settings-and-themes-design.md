@@ -29,6 +29,11 @@ This specification supersedes the Settings, font, view-control placement, theme,
 
 The installed `svelte-jsoneditor` renders `.jse-expand` as a narrow button without `aria-expanded` or a stateful accessible label. Patch the pinned dependency in a reproducible, reviewable way at the component that owns the disclosure state; do not imperatively rewrite its DOM or make the editable row toggle. The actual button must expose correct `aria-expanded` and a meaningful accessible name for its target, keep keyboard Enter/Space behavior, and remain synchronized when expansion changes through any editor action. Size its real hit area to at least 40 × 40 CSS pixels on desktop and 44 × 44 on narrow/touch layouts, with visible focus and no overlap with keys, indentation, or adjacent actions. Verify behavior and geometry against the installed library; if a stable patch cannot meet these constraints, stop for design revision rather than shipping CSS-only semantics.
 
+## Operation feedback
+
+- Show a short success toast after an explicit Format or Minify operation actually succeeds. If the source is invalid or contains duplicate keys, allow the user to attempt the operation and explain in a dismissible error toast why it cannot proceed; leave the exact draft unchanged and keep its inline diagnostic visible. A processing failure also produces an error toast without discarding the draft. Disable repeat activation while processing rather than showing duplicate notices.
+- Use one accessible, nonblocking toast area with polite announcements for success and assertive announcements for errors. Success disappears after a few seconds; errors stay until dismissed. A new notice replaces the old one; leaving Settings or changing themes must not silently clear an error. Do not include JSON content, file contents, or sensitive data in toast text. Keep existing persistent diagnostics, guards, and status text rather than replacing them with ephemeral messages.
+
 ## Verification and boundaries
 
 - Use focused tests for preference validation/defaults, persistence failure, viewport default versus explicit view, and Settings navigation retaining document/editor state; test any dependency patch's state behavior with the smallest maintainable check. Run `npm run check`, `npm test`, `npm run build`, `npm run format:check`, and `git diff --check` before completion.
