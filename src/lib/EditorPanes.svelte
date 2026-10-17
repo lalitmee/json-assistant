@@ -13,6 +13,7 @@
   export let onCopyPath: (path: string) => void
 
   const parser = { parse, stringify }
+  let split = 50
   let code: Content = { text: state.source }
   let tree: Content = { text: state.source }
   let sourceVersion = state.source
@@ -94,6 +95,20 @@
       operation.path.slice(1).split('/').map(part => part.replace(/~1/g, '/').replace(/~0/g, '~')))
   }
 
+  function resizeDivider(event: PointerEvent) {
+    if (event.buttons !== 1) return
+    const bounds = event.currentTarget instanceof HTMLElement ? event.currentTarget.parentElement!.getBoundingClientRect() : null
+    if (bounds) split = Math.max(25, Math.min(75, ((event.clientX - bounds.left) / bounds.width) * 100))
+  }
+
+  function dividerKey(event: KeyboardEvent) {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      event.preventDefault()
+      split = Math.max(25, Math.min(75, split + (event.key === 'ArrowRight' ? 5 : -5)))
+    } else if (event.key === 'Home') { event.preventDefault(); split = 25 }
+    else if (event.key === 'End') { event.preventDefault(); split = 75 }
+  }
+
   function contextMenu(items: any[]) {
     const safeItems = items.filter(item => !/repair|transform|query|schema/i.test(item.text ?? item.title ?? ''))
     return [...safeItems.map(item => item.type === 'button' && item.text?.toLowerCase() === 'undo'
@@ -108,14 +123,22 @@
 
 </script>
 
-<div class="panes" data-view={view}>
+<div class="panes" data-view={view} style={`--split: ${split}%`}>
   <section aria-label="Source pane" hidden={view === 'tree'}>
     <h2>Source</h2>
     <JSONEditor bind:this={codeEditor} content={code} selection={state.selection.code} mode={Mode.text} {parser}
       mainMenuBar={false} askToFormat={false} onChange={sourceChanged} onSelect={value => selected('code', value)}
       onRenderContextMenu={contextMenu} />
   </section>
-  <section aria-label="Tree pane" hidden={view === 'code'}>
+  {#if view === 'split'}
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_no_noninteractive_element_interactions -->
+    <div class="divider" role="separator" aria-label="Resize panes" aria-orientation="vertical"
+      aria-valuenow={Math.round(split)} aria-valuemin="25" aria-valuemax="75" tabindex="0"
+      onkeydown={dividerKey} onpointerdown={event => event.currentTarget.setPointerCapture(event.pointerId)}
+      onpointermove={resizeDivider}></div>
+  {/if}
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+  <section aria-label="Tree pane" tabindex="0" hidden={view === 'code'}>
     <h2>Tree</h2>
     {#if unavailable}<p role="status">Tree unavailable: invalid or duplicate-key source</p>{/if}
     {#if !unavailable}<button onclick={openSearch}>Search</button>{/if}
@@ -129,8 +152,3 @@
 </div>
 <output data-testid="echo-count" hidden>{echoCount}</output>
 <output data-testid="tree-selection" hidden>{JSON.stringify(state.selection.tree ?? null)}</output>
-
-<style>
-  .panes { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-  section { min-width: 0; height: 65vh; display: flex; flex-direction: column; }
-</style>

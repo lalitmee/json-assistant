@@ -8,6 +8,7 @@
 
   let document = createDocument()
   let view: View = 'split'
+  let viewChosen = false
   let panes: InstanceType<typeof EditorPanes>
   let processor: ReturnType<typeof createProcessor>
   let busy = false
@@ -47,19 +48,24 @@
       history(event.shiftKey ? 'redo' : 'undo')
     }
   }
+  function chooseView(next: View) { view = next; viewChosen = true }
   onMount(() => {
     processor = createProcessor()
     window.addEventListener('keydown', shortcut, true)
+    const resize = () => { if (!viewChosen) view = window.innerWidth >= 900 ? 'split' : 'code' }
+    resize()
+    window.addEventListener('resize', resize)
     if (import.meta.env.DEV) {
       ;(window as any).__editorGatePatch = (operations: JSONPatchDocument) => panes.applyPatch(operations);
       (window as any).__editorGateProcess = runOperation
       ;(window as any).__editorGateApplyResult = (result: ProcessResult) => applyResult(result.analysis.revision, result)
       ;(window as any).__editorGateParsePath = (path: string) => panes.parsePath(path)
     }
-    return () => { processor.dispose(); window.removeEventListener('keydown', shortcut, true) }
+    return () => { processor.dispose(); window.removeEventListener('keydown', shortcut, true); window.removeEventListener('resize', resize) }
   })
 </script>
 
+<main>
 <h1>JSON workspace</h1>
 <button disabled>Open file</button>
 <button disabled={!document.analysis?.valid || busy} onclick={() => runOperation('format')}>Format</button>
@@ -69,9 +75,11 @@
 <button onclick={copyJson}>Copy JSON</button>
 <button disabled>Download</button>
 <button disabled={!busy} onclick={() => { processId++; cancelledRevision = document.revision; processor.cancel(); busy = false; document = { ...document, processing: false } }}>Cancel</button>
-<button onclick={() => view = 'split'}>Split</button>
-<button onclick={() => view = 'code'}>Code</button>
-<button onclick={() => view = 'tree'}>Tree</button>
+<nav aria-label="Workspace layout">
+  <button aria-pressed={view === 'split'} onclick={() => chooseView('split')}>Split</button>
+  <button aria-pressed={view === 'code'} onclick={() => chooseView('code')}>Code</button>
+  <button aria-pressed={view === 'tree'} onclick={() => chooseView('tree')}>Tree</button>
+</nav>
 <EditorPanes bind:this={panes} state={document} {view} onEdit={edit} onSelection={select} onHistory={history} onCopyPath={copyPath} />
 <section aria-label="Document status">
   <p>{document.processing ? 'Processing' : cancelledRevision === document.revision && !document.analysis ? 'Processing cancelled' : document.analysis ? document.analysis.valid ? 'Valid JSON' : 'Invalid JSON' : 'Processing'} · {document.analysis?.bytes ?? new TextEncoder().encode(document.source).length} UTF-8 bytes · {isDirty(document) ? 'Unsaved changes' : 'Unchanged'}</p>
@@ -81,3 +89,4 @@
 </section>
 <pre data-testid="source">{document.source}</pre>
 <output data-testid="revision" hidden>{document.revision}</output>
+</main>

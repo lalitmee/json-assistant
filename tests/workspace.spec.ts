@@ -100,3 +100,100 @@ test('path action copies an escaped JSONPath for selected keys', async ({ page }
   await expect.poll(() => page.evaluate(path => (window as any).__editorGateParsePath(path), copiedPath))
     .toEqual(['a."b\\c'])
 })
+
+test('chooses a responsive default without overriding an explicit view', async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 800 })
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Split', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await page.setViewportSize({ width: 899, height: 800 })
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Code', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: 'Tree', exact: true }).click()
+  await page.setViewportSize({ width: 1200, height: 800 })
+  await expect(page.getByRole('button', { name: 'Tree', exact: true })).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('stacks narrow split and preserves source/history across view changes', async ({ page }) => {
+  await source(page, '{"a":1}')
+  await page.getByRole('button', { name: 'Tree', exact: true }).click()
+  await page.getByRole('button', { name: 'Split', exact: true }).click()
+  await expect(page.getByTestId('source')).toHaveText('{"a":1}')
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeEnabled()
+  await page.setViewportSize({ width: 500, height: 800 })
+  const panes = page.locator('.panes')
+  const geometry = await panes.evaluate(element => {
+    const sourcePane = element.querySelector('[aria-label="Source pane"]')!.getBoundingClientRect()
+    const treePane = element.querySelector('[aria-label="Tree pane"]')!.getBoundingClientRect()
+    return { stacked: treePane.top >= sourcePane.bottom, overflow: element.scrollWidth > element.clientWidth }
+  })
+  expect(geometry).toEqual({ stacked: true, overflow: false })
+})
+
+test('exposes keyboard-operable divider and named, reachable layout controls', async ({ page }) => {
+  const split = page.getByRole('button', { name: 'Split', exact: true })
+  const code = page.getByRole('button', { name: 'Code', exact: true })
+  const tree = page.getByRole('button', { name: 'Tree', exact: true })
+  await expect(split).toHaveAttribute('aria-pressed', 'true')
+  await expect(code).toHaveAccessibleName('Code')
+  const divider = page.getByRole('separator', { name: /Resize panes/ })
+  await divider.focus()
+  await expect(divider).toBeFocused()
+  const initial = Number(await divider.getAttribute('aria-valuenow'))
+  await page.keyboard.press('ArrowRight')
+  expect(Number(await divider.getAttribute('aria-valuenow'))).toBeGreaterThan(initial)
+  await page.keyboard.press('Home')
+  const minimum = await divider.getAttribute('aria-valuemin')
+  expect(await divider.getAttribute('aria-valuenow')).toBe(minimum)
+  await page.keyboard.press('End')
+  const maximum = await divider.getAttribute('aria-valuemax')
+  expect(await divider.getAttribute('aria-valuenow')).toBe(maximum)
+  await tree.focus()
+  await page.keyboard.press('Tab')
+  await expect(page.locator('.cm-content:visible').first()).toBeFocused()
+})
+
+test('honors system color preference and refreshes a hidden source editor', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark')
+  await expect(page.locator('html')).toHaveCSS('--editor-background', '#1e1e1e')
+  await source(page, '{"hidden":1}')
+  await page.getByRole('button', { name: 'Tree', exact: true }).click()
+  await page.evaluate(() => (window as any).__editorGatePatch([{ op: 'replace', path: '/hidden', value: 2 }]))
+  await page.getByRole('button', { name: 'Code', exact: true }).click()
+  await expect(page.locator('[aria-label="Source pane"] .cm-content')).toContainText('"hidden": 2')
+  await page.emulateMedia({ colorScheme: 'light' })
+  await expect(page.locator('html')).toHaveCSS('--editor-background', '#fff')
+})
+
+test('undo shortcut remains available after focusing source and tree controls', async ({ page }) => {
+  await source(page, '{"value":1}')
+  await source(page, '{"value":2}')
+  await page.getByRole('button', { name: 'Tree', exact: true }).click()
+  await page.getByRole('treeitem', { name: 'value : 2', exact: true }).click()
+  await page.keyboard.press('Control+z')
+  await expect.poll(() => page.getByTestId('source').textContent().then(text => JSON.parse(text!).value)).toBe(1)
+})
+
+test('Tab navigation reaches both editors without a pointer', async ({ page }) => {
+  await expect(page.getByRole('button', { name: 'Split', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  let treeButtonFocused = false
+  for (let i = 0; i < 20; i++) {
+    await page.keyboard.press('Tab')
+    if (await page.getByRole('button', { name: 'Tree', exact: true }).evaluate(element => element === document.activeElement)) {
+      treeButtonFocused = true
+      break
+    }
+  }
+  expect(treeButtonFocused).toBe(true)
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('button', { name: 'Tree', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  let treePaneFocused = false
+  for (let i = 0; i < 12; i++) {
+    await page.keyboard.press('Tab')
+    if (await page.getByRole('region', { name: 'Tree pane' }).evaluate(element => element === document.activeElement)) {
+      treePaneFocused = true
+      break
+    }
+  }
+  expect(treePaneFocused).toBe(true)
+})

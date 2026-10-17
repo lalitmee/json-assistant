@@ -1,0 +1,52 @@
+:root {
+  color-scheme: light dark;
+  font: 16px/1.5 system-ui, sans-serif;
+  color: CanvasText;
+  background: Canvas;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 1440px; margin: 0 auto; padding: 1rem; }
+button {
+  margin: 0 .35rem .5rem 0;
+  padding: .45rem .7rem;
+  color: CanvasText;
+  background: Canvas;
+  border: 1px solid GrayText;
+  border-radius: .25rem;
+}
+button[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: 1px; }
+:focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
+nav { display: flex; gap: .25rem; }
+.panes { display: grid; grid-template-columns: minmax(0, var(--split)) 12px minmax(0, 1fr); gap: .5rem; }
+.panes[data-view="code"], .panes[data-view="tree"] { grid-template-columns: minmax(0, 1fr); }
+.panes section { min-width: 0; height: 65vh; display: flex; flex-direction: column; }
+.panes section[hidden] { display: none; }
+.divider { cursor: col-resize; touch-action: none; border-radius: .25rem; }
+.divider:hover, .divider:focus-visible { background: Highlight; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .panes[data-view="split"] { grid-template-columns: minmax(0, 1fr); }
+  .panes[data-view="split"] .divider { display: none; }
+  .panes[data-view="split"] section { height: 55vh; }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; --editor-background: #1e1e1e; --editor-foreground: #d4d4d4; }
+  .panes {
+    --jse-theme: dark;
+    --jse-background-color: var(--editor-background);
+    --jse-text-color: var(--editor-foreground);
+    --jse-main-border: 1px solid #4f4f4f;
+    --jse-panel-background: #333;
+    --jse-panel-color: var(--jse-text-color);
+    --jse-key-color: #9cdcfe;
+    --jse-selection-background-color: #464646;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root { --editor-background: #fff; --editor-foreground: #222; }
+  .panes { --jse-theme: light; --jse-background-color: var(--editor-background); --jse-text-color: var(--editor-foreground); }
+}
