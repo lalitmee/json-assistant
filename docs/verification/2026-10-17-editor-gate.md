@@ -20,12 +20,11 @@ The browser operation test uses the editor's documented `patch` API through a de
 ## Commands and results
 
 - `npm run test:e2e -- tests/editor-gate.spec.ts` — **24 passed**: 12 Playwright Chromium, 12 Playwright Firefox.
-- Stable Google Chrome `154.0.8037.97` — **12 passed** using `/usr/bin/google-chrome`.
+- Stable Google Chrome `154.0.8037.97` — **12 passed** using `/usr/bin/google-chrome`. [Log](editor-gate-evidence/stable-chrome.log)
 - System Firefox `157.0` could not launch under this environment (`CanCreateUserNamespace: EPERM`); Playwright Firefox `157.0` passed all 12 tests. This is an environment launch limitation, not a test assertion failure.
 - `npm run check` — **0 errors, 0 warnings**.
 - `npm test` — **9 passed**.
 - `npm run build` — exit 0. Vite reports the existing large main-chunk warning (820.24 kB).
-- `git diff --check` — pass.
 
 One earlier Chromium run transiently read the invalid draft `{"a":` as `{"a":{}` immediately after `locator.fill`. The focused test passed 11 consecutive retries, and later complete Chromium and Chromium/Firefox runs passed without code changes; the trigger was not established. Keep this as an observed, currently non-reproducible test/editor interaction rather than claiming a root cause.
 
@@ -46,6 +45,7 @@ This is only the Task 1 diagnostic/integration gate, not the polished workspace.
 ## Evidence files
 
 - [Final browser run](editor-gate-evidence/final-e2e.log)
+- [Stable Google Chrome run](editor-gate-evidence/stable-chrome.log)
 - [Type check](editor-gate-evidence/check.log)
 - [Unit tests](editor-gate-evidence/unit.log)
 - [Production build](editor-gate-evidence/build.log)

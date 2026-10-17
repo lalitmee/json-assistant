@@ -7,6 +7,9 @@
 
 
  Test Files  1 passed (1)
-      Tests  8 passed (8)
-   Start at  21:18:33
-   Duration  8.62s (transform 81%, import 19%)
+      Tests  9 passed (9)
+   Start at  23:13:40
+   Duration  3.37s (import 60%, transform 38%, tests 1%, worker 1%)
+
+
+[exit status: 0]

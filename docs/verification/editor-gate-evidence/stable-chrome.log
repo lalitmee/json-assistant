@@ -1,0 +1,23 @@
+
+> json-workspace-editor-gate@0.0.0 test:e2e
+> playwright test --config=/tmp/opencode-playwright-stable-chrome.config.mjs
+
+
+Running 12 tests using 1 worker
+
+  ✓   1 tests/editor-gate.spec.ts:23:1 › shared chronological history (5.8s)
+  ✓   2 tests/editor-gate.spec.ts:41:1 › tree edits preserve unaffected lossless values (4.5s)
+  ✓   3 tests/editor-gate.spec.ts:55:1 › invalid and decoded-equivalent duplicate drafts stay exact and unavailable (4.7s)
+  ✓   4 tests/editor-gate.spec.ts:64:1 › all root values render without changing source (6.6s)
+  ✓   5 tests/editor-gate.spec.ts:73:1 › HTML, URLs and hostile keys remain data (4.1s)
+  ✓   6 tests/editor-gate.spec.ts:87:1 › view changes preserve selection, and deleting a selected child selects its parent (5.0s)
+  ✓   7 tests/editor-gate.spec.ts:108:1 › deleting a selected ancestor moves selection to the nearest surviving parent (4.5s)
+  ✓   8 tests/editor-gate.spec.ts:123:1 › editor context-menu undo routes through shared history (4.5s)
+  ✓   9 tests/editor-gate.spec.ts:136:1 › object rename preserves sibling values (4.8s)
+  ✓  10 tests/editor-gate.spec.ts:152:1 › object add/remove and array insert/move preserve unaffected values (5.1s)
+  ✓  11 tests/editor-gate.spec.ts:176:1 › programmatic pane synchronization does not create echo transactions (5.2s)
+  ✓  12 tests/editor-gate.spec.ts:185:1 › synthetic composition sequence keeps composed text and does not hijack undo (4.3s)
+
+  12 passed (1.1m)
+[Chrome version: Google Chrome 154.0.8037.97]
+[exit status: 0]
