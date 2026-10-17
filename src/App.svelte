@@ -4,7 +4,7 @@
   import type { JSONPatchDocument } from 'immutable-json-patch'
   import { acceptAnalysis, acceptCompletion, commit, createDocument, isDirty, redo, undo, type Selection, type View } from './lib/document'
   import { createProcessor } from './lib/processing'
-  import { copyText, downloadText, readFile } from './lib/io'
+  import { copyText, downloadText, readFile, subtreeSource } from './lib/io'
   import type { ProcessRequest, ProcessResult } from './lib/process'
 
   let document = createDocument()
@@ -52,7 +52,13 @@
     }
   }
   async function copyJson() { try { await copyText(document.source); ioError = '' } catch (error) { ioError = (error as Error).message } }
-  async function copyPath(path: string) { try { await copyText(path); copied = path; ioError = '' } catch (error) { ioError = (error as Error).message } }
+  async function copyPath(path: string) { try { await copyText(path); copied = 'path'; ioError = '' } catch (error) { ioError = (error as Error).message } }
+  async function copySubtree(path: Array<string | number>) {
+    if (document.analysis?.revision !== document.revision || !document.analysis.valid) return
+    const source = subtreeSource(document.source, path)
+    if (!source) return
+    try { await copyText(source); copied = 'subtree'; ioError = '' } catch (error) { ioError = (error as Error).message }
+  }
   async function pasteDocument() {
     const revision = document.revision
     let text: string
@@ -84,7 +90,7 @@
   }
   function download() {
     const source = document.source
-    if (document.analysis && !document.analysis.valid && !window.confirm('This draft is invalid JSON. Download its exact source anyway?')) return
+    if (document.analysis && !document.analysis.valid && !window.confirm('Warning: this draft is invalid JSON or contains duplicate keys. Download will preserve its exact raw source. Continue?')) return
     try { downloadText(source, 'document.json'); document = { ...document, exportedSource: source }; ioError = 'Download initiated.' }
     catch { ioError = 'Download could not be initiated.' }
   }
@@ -134,13 +140,14 @@
   <button aria-pressed={view === 'code'} onclick={() => chooseView('code')}>Code</button>
   <button aria-pressed={view === 'tree'} onclick={() => chooseView('tree')}>Tree</button>
 </nav>
-<EditorPanes bind:this={panes} state={document} {view} onEdit={edit} onSelection={select} onHistory={history} onCopyPath={copyPath} />
+<EditorPanes bind:this={panes} state={document} {view} onEdit={edit} onSelection={select} onHistory={history} onCopyPath={copyPath} onCopySubtree={copySubtree} />
 <section aria-label="Document status">
   <p>{document.processing ? 'Processing' : cancelledRevision === document.revision && !document.analysis ? 'Processing cancelled' : document.analysis ? document.analysis.valid ? 'Valid JSON' : 'Invalid JSON' : 'Processing'} · {document.analysis?.bytes ?? new TextEncoder().encode(document.source).length} UTF-8 bytes · {isDirty(document) ? 'Unsaved changes' : 'Unchanged'}</p>
   {#if document.analysis?.diagnostics[0]}<p data-testid="diagnostic">{document.analysis.diagnostics[0].kind === 'duplicate' ? 'Duplicate key' : 'Invalid JSON'} at {document.analysis.diagnostics[0].line}:{document.analysis.diagnostics[0].column}: {document.analysis.diagnostics[0].message}</p>{/if}
   <p>Local processing only · no recovery · {document.analysis?.valid ? 'edit and inspect' : 'edit only; inspection unavailable'}</p>
-  {#if copied}<output>Copied path: {copied}</output>{/if}
+  {#if copied}<output>Copied {copied}.</output>{/if}
   {#if ioError}<p role="alert">{ioError}</p>{/if}
+  {#if document.analysis?.revision === document.revision && !document.analysis.valid}<p role="status">Warning: invalid JSON draft; Download exports the exact raw source, including invalid content.</p>{/if}
 </section>
 <pre data-testid="source">{document.source}</pre>
 <output data-testid="revision" hidden>{document.revision}</output>

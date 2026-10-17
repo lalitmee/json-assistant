@@ -45,10 +45,18 @@ test('dirty file replacement asks for confirmation and cancellation retains sour
 test('download initiates the exact invalid draft and reports initiation, not disk completion', async ({ page }) => {
   const draft = String.raw`{"n":9007199254740993,"s":"\u0061",`
   await source(page, draft)
+  await expect(page.getByText(/Warning: invalid JSON draft/)).toContainText(/exact raw source/i)
   page.once('dialog', dialog => dialog.accept())
+  await page.evaluate(() => {
+    const original = URL.revokeObjectURL.bind(URL)
+    ;(window as any).__revokedUrls = []
+    URL.revokeObjectURL = (url: string) => { (window as any).__revokedUrls.push(url); original(url) }
+  })
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Download', exact: true }).click()
   const file = await download
+  expect(await page.evaluate(() => (window as any).__revokedUrls.length)).toBe(0)
+  await page.waitForFunction(() => (window as any).__revokedUrls.length === 1)
   expect(file.suggestedFilename()).toBe('document.json')
   const path = await file.path()
   expect(await (await import('node:fs/promises')).readFile(path!, 'utf8')).toBe(draft)
@@ -307,6 +315,30 @@ test('path action copies an escaped JSONPath for selected keys', async ({ page }
   expect(copiedPath).toBe(String.raw`["a.\"b\c"]`)
   await expect.poll(() => page.evaluate(path => (window as any).__editorGateParsePath(path), copiedPath))
     .toEqual(['a."b\\c'])
+})
+
+test('copy subtree preserves selected source tokens exactly', async ({ page }) => {
+  const json = String.raw`{"obj":{"n":9007199254740993,"s":"\u0061","decimal":1.2300}}`
+  await page.evaluate(() => {
+    ;(window as any).__clipboardText = ''
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (text: string) => { (window as any).__clipboardText = text } } })
+  })
+  await source(page, json)
+  await page.getByRole('button', { name: 'Tree', exact: true }).click()
+  await page.getByRole('treeitem', { name: /obj/ }).last().click()
+  await page.getByRole('button', { name: 'Copy subtree', exact: true }).click()
+  expect(await page.evaluate(() => (window as any).__clipboardText)).toBe(String.raw`{"n":9007199254740993,"s":"\u0061","decimal":1.2300}`)
+})
+
+test('source edits invalidate a prior tree selection for subtree copy', async ({ page }) => {
+  await source(page, '{"obj":{"old":1}}')
+  await page.getByRole('button', { name: 'Tree', exact: true }).click()
+  await page.getByRole('treeitem', { name: /obj/ }).last().click()
+  await expect(page.getByRole('button', { name: 'Copy subtree', exact: true })).toBeEnabled()
+  await page.getByRole('button', { name: 'Code', exact: true }).click()
+  await source(page, '{"obj":{"new":2}}')
+  await page.getByRole('button', { name: 'Tree', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Copy subtree', exact: true })).toBeDisabled()
 })
 
 test('chooses a responsive default without overriding an explicit view', async ({ page }) => {

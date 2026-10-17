@@ -2,7 +2,7 @@
 
 ## Summary
 
-Implemented native local file, clipboard, and download actions. File opens are abortable and generation-gated; they preserve the live document until read success and require fresh confirmation if the document changed during the read. Other whole-document replacements invalidate pending file opens. Paste-as-document also checks for a document change during clipboard read. Paste and clear confirm dirty replacements. Copy/download preserve raw source; invalid downloads warn first. Successful download initiation alone updates `exportedSource`. Dirty documents install a best-effort `beforeunload` listener. `subtreeSource` validates current source and slices the original token range, refusing invalid/duplicate trees.
+Implemented native local file, clipboard, and download actions. File opens are abortable and generation-gated; they preserve the live document until read success and require fresh confirmation if the document changed during the read. Other whole-document replacements invalidate pending file opens. Paste-as-document also checks for a document change during clipboard read. Paste and clear confirm dirty replacements. Copy/download preserve raw source; invalid downloads warn first. Successful download initiation alone updates `exportedSource`. Dirty documents install a best-effort `beforeunload` listener. `subtreeSource` validates current source and slices the original token range, refusing invalid/duplicate trees. Tree selection copy is wired to that helper; code edits clear any previous tree selection, and array indexes retain numeric path segments.
 
 ## Commands and results
 
@@ -48,3 +48,23 @@ Commands are listed in execution order; initial exploratory failures are retaine
 - Browser clipboard permission behavior remains browser-controlled; rejection is surfaced as an actionable error.
 - The production bundle still triggers Vite’s >500 kB chunk warning; splitting was not part of Task 5.
 - No payloads are written to browser storage or network, and generated download filenames do not include document content.
+
+## Review fixes and verification
+
+The follow-up review found that the existing helper was not connected to the UI, invalid-download warning was only in the confirmation prompt, and download URLs were revoked immediately. The UI now has **Copy subtree**, with current valid/duplicate-free tree gating and exact source slicing; editing source clears the prior tree selection. Invalid drafts show a persistent warning explaining that the exact raw source, including invalid content, will be exported. Download object URLs are revoked 1 second after successful anchor activation and immediately if activation throws; Chromium and Firefox tests assert revocation does not precede the browser download event and that cleanup eventually happens.
+
+The `Number.isSafeInteger(file.size)` check remains metadata validation only, not an allocation ceiling. No arbitrary quota was added because no documented, cross-browser supported `FileReader` maximum was established; there is no product size limit.
+
+Review-phase commands and results:
+
+1. `git status --short && git log -1 --oneline` — clean worktree at prior Task 5 commit `11a7bf5`.
+2. `npm run test:e2e -- tests/workspace.spec.ts -g 'download initiates|copy subtree preserves|source edits invalidate'` — expected red: missing visible invalid-export warning and missing Copy subtree UI in both browsers (6 failed).
+3. After adding UI assertions, the same focused E2E command — 4 subtree tests passed; invalid-download warning locator was ambiguous because both tree and export use `role=status` (2 failed). The assertion was narrowed to the warning text.
+4. `npm run test:e2e -- tests/workspace.spec.ts -g 'download initiates|copy subtree preserves|source edits invalidate'` — 6 passed in Chromium/Firefox, including delayed URL revocation.
+5. `npm test -- src/lib/io.test.ts` — expected red: numeric array path `[0]` returned empty source because the helper converted numeric segments to strings.
+6. `npm test -- src/lib/io.test.ts` — 4 passed after preserving numeric path segments.
+7. `npm run check` — passed with 0 errors and 0 warnings.
+8. `npm test` — 31 passed across 4 test files.
+9. `npm run build` — succeeded; Vite reported the existing main-chunk size warning (>500 kB).
+10. `npm run test:e2e -- tests/workspace.spec.ts` — 50 passed (25 Chromium, 25 Firefox), 1 worker.
+11. `git diff --check && git status --short && git diff --stat` — passed with no whitespace errors; only the review fixes and updated report are modified.

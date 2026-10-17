@@ -7,6 +7,10 @@ describe('source-preserving local I/O', () => {
     expect(subtreeSource(source, ['obj'])).toBe('{"x":1.2300}')
   })
 
+  it('preserves numeric array path segments', () => {
+    expect(subtreeSource('[{"n":1.2300}]', [0])).toBe('{"n":1.2300}')
+  })
+
   it.each(['{"a":', String.raw`{"a":1,"\u0061":2}`])('rejects invalid or duplicate source: %s', source => {
     expect(subtreeSource(source, ['a'])).toBe('')
   })

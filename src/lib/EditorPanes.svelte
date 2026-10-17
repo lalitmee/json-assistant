@@ -11,6 +11,7 @@
   export let onSelection: (selection: Selection) => void
   export let onHistory: (direction: 'undo' | 'redo') => void
   export let onCopyPath: (path: string) => void
+  export let onCopySubtree: (path: Array<string | number>) => void
 
   const parser = { parse, stringify }
   let split = 50
@@ -50,7 +51,7 @@
     code = content
     const text = isTextContent(content) ? content.text : stringify(content.json)!
     sourceVersion = text
-    if (text !== state.source) onEdit({ source: text, selection: state.selection })
+    if (text !== state.source) onEdit({ source: text, selection: { ...state.selection, tree: undefined } })
     else echoCount++
     try { parse(text); tree = { text }; unavailable = false } catch { unavailable = true }
   }
@@ -81,6 +82,11 @@
       const path = stringifyJSONPath(selection.path)
       onCopyPath(stringifyJSONPath(parsePath(path)))
     }
+  }
+
+  function copySelectedSubtree() {
+    const selection = state.selection.tree
+    if (selection && selection.type !== 'text' && selection.type !== 'multi') onCopySubtree(selection.path)
   }
 
   export function parsePath(path: string) { return parseJSONPath(path) }
@@ -143,6 +149,7 @@
     {#if unavailable}<p role="status">Tree unavailable: invalid or duplicate-key source</p>{/if}
     {#if !unavailable}<button onclick={openSearch}>Search</button>{/if}
     <button disabled={!state.selection.tree || unavailable} onclick={copySelectedPath}>Copy path</button>
+    <button disabled={!state.selection.tree || unavailable} onclick={copySelectedSubtree}>Copy subtree</button>
     <div hidden={unavailable}>
       <JSONEditor bind:this={treeEditor} content={tree} selection={state.selection.tree} mode={Mode.tree} {parser}
         mainMenuBar={false} readOnly={unavailable} onRenderContextMenu={contextMenu} onChange={treeChanged}

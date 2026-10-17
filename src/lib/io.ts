@@ -24,18 +24,23 @@ export async function copyText(text: string): Promise<void> {
 
 export function downloadText(text: string, filename: string): void {
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json;charset=utf-8' }))
+  let clicked = false
   try {
     const link = document.createElement('a')
     link.href = url
     link.download = filename
     link.click()
-  } finally { URL.revokeObjectURL(url) }
+    clicked = true
+  } finally {
+    if (clicked) window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    else URL.revokeObjectURL(url)
+  }
 }
 
 export function subtreeSource(source: string, path: Path): string {
   if (!processSource({ source, revision: 0, operation: 'analyze' }).analysis.valid) return ''
   const errors: ParseError[] = []
   const root = parseTree(source, errors, { disallowComments: true, allowTrailingComma: false, allowEmptyContent: false })
-  const node = root && findNodeAtLocation(root, path.map(String))
+  const node = root && findNodeAtLocation(root, path)
   return node ? source.slice(node.offset, node.offset + node.length) : ''
 }
