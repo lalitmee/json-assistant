@@ -8,11 +8,13 @@ The integration remains a gate, not a full product UI: browser tests exercise wo
 
 ## Verification
 
-- `npm test -- src/lib/process.test.ts src/lib/processing.test.ts src/lib/document.test.ts` — **25 passed**.
-- `npm test` — **25 passed**.
+- `npm test -- src/lib/process.test.ts src/lib/processing.test.ts src/lib/document.test.ts` — **26 passed** after the preflight fix.
+- `npm test` — **26 passed** after the preflight fix.
 - `npm run check` — **0 errors, 0 warnings**.
 - `npm run build` — passed; Vite retains its existing large main-chunk warning (~821 kB).
-- `npm run test:e2e -- tests/editor-gate.spec.ts` — **25/26 passed** on its latest complete run. Both browser projects passed the new worker format/minify test. An existing source-editor race intermittently appended `{}` immediately after `locator.fill` in the hostile-key source case (Firefox in latest complete run; Chromium in an earlier run); the focused hostile-key test passed in both browsers on a separate retry. No cause is established, and no source was altered to mask it. This is recorded as the previously documented transient invalid-source/editor test mismatch, not as a processing failure.
+- `npm run test:e2e -- tests/editor-gate.spec.ts` — **26/26 passed** after changing the shared source fixture helper to select-all and use Playwright's paste-style `keyboard.insertText` rather than `locator.fill`. The invalid-draft case then passed 10 repetitions in each browser (20/20), followed by the full suite (13 Chromium, 13 Firefox). The earlier `fill` mismatch is consistent with editor input-method behavior: a direct character-by-character probe auto-closed braces; the exact cause of the previous `fill` trace remains unproven, so it is disclosed rather than claimed fixed in product code.
+- `npm run check` — **0 errors, 0 warnings** (fresh run after test-helper change).
+- `npm run build` — exit 0, existing large main-chunk warning at 821.23 kB.
 
 ## Existing limitations retained
 
@@ -33,6 +35,12 @@ The Important review finding was valid: scanner guardrail diagnostics previously
 - Full unit suite: `npm test` — **26 passed**.
 - `npm run check` — **0 errors, 0 warnings**.
 - `npm run build` — passed; existing large main-chunk warning remains.
-- `npm run test:e2e -- tests/editor-gate.spec.ts` — **22/26 passed**. Four failures were the known intermittent editor-fill race, where `{}` appeared appended after `locator.fill` (three Chromium cases and one Firefox case). The new worker operation cases passed in both browsers.
+- The first post-fix `npm run test:e2e -- tests/editor-gate.spec.ts` was **22/26 passed** with four editor-fill failures. The test source helper was changed to a paste-style insertion; subsequent repeated invalid-draft runs and the full suite passed as documented above.
 
 The deferred Minor finding about the stale-revision coordinator test remains unchanged and outstanding. Manual native IME verification remains outstanding.
+
+## Final review disposition
+
+The reviewer’s Major concern that duplicate-key analysis was not connected to the tree gate was re-reviewed and found to be a false positive. `EditorPanes.sourceChanged` parses current source with `lossless-json`; duplicate keys (including decoded-equivalent keys and `__proto__`) throw, which sets the unavailable state, displays a status, and hides the tree while retaining source. Direct parser checks and the targeted Chromium/Firefox test confirm this behavior. Scoped reviewer `ses_eb4e70747ffeLksUBLLT20I4qe` returned Spec compliance PASS and quality PASS, with no new Critical/Important findings.
+
+The deferred Minor stale-coordinator test gap and unverified manual native IME check remain explicit limitations.
