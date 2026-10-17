@@ -3,7 +3,9 @@ import { parse } from 'lossless-json'
 
 async function source(page: Page, text: string) {
   const code = page.locator('[aria-label="Source pane"] .cm-content')
-  await code.fill(text)
+  await code.click()
+  await code.press('ControlOrMeta+a')
+  await page.keyboard.insertText(text)
   await expect(code).toHaveText(text)
   await expect(page.getByTestId('source')).toHaveText(text)
 }
