@@ -1,0 +1,36 @@
+# JSON Workspace Settings and Themes
+
+## Purpose and scope
+
+Give the existing private, browser-only JSON workspace a dedicated place for presentation preferences, with readable application and editor colors and accessible tree controls. A returning developer should get their chosen appearance and layout without restoring, transmitting, or silently saving their JSON. Preserve source/tree editing, inspection, shared history, invalid-draft protection, processing cancellation, and raw export. The approved static Settings and color-theme mockups establish the visual direction, not a new component library.
+
+This specification supersedes the Settings, font, view-control placement, theme, and tree-disclosure portions of `2026-10-18-workspace-ui-redesign-design.md`. The original implementation plan's Task 1 is complete; its remaining tasks require a replacement plan and are not authorization to implement this specification.
+
+## Settings navigation and state
+
+- Add a visible **Settings** action to the workspace header and a full-screen in-app Settings page with a labeled **Back to workspace** action. No route, URL change, account, or separate browser page. Keep the document and editor component instances mounted when Settings is shown; hide the workspace without destroying it, so source, selections where supported, undo/redo, pending processing, and dirty state survive navigation. Do not hide active work without a way back; restore focus to the Settings trigger on return and focus the Settings heading on entry.
+- Move the textual **Split / Code / Tree** layout choice from the workspace row into Settings; do not duplicate its controls in the workspace. Continue to honor the current initial viewport-dependent choice (Split at width ≥900px, Code below 900px) until a user selects a view. Once selected, retain it across resize and visits. If stored preferences are invalid or unavailable, fall back to that viewport-dependent default.
+- Move font selection into Settings. Offer system monospace and two locally bundled, redistribution-licensed developer monospace families; apply the chosen family to both Code and Tree where the editor supports it. Verify upstream licenses and shipped weights before choosing specific families; omit any font whose redistribution rights cannot be verified. No font CDN or remote UI assets.
+- Keep all other workspace commands in their existing functional positions. Settings changes are presentation-only: they must not add document revisions, change source bytes, mark the document dirty, or disturb shared history.
+
+## Two independent theme layers
+
+- **Application appearance:** System, Dark, Light. System follows `prefers-color-scheme` live; Dark and Light override it. The initial choice is System. Provide three curated application palettes, **Ocean** (default), **Graphite**, and **Forest**. Each palette has explicit light and dark CSS tokens for page background, foreground, surfaces, borders, focus, and accent; the appearance choice selects the variant. Text, controls, diagnostics, and focus indicators must stay legible in every pairing.
+- **Editor appearance:** one independently chosen theme shared by Code and Tree: **Midnight** (default), **Orchid**, or **Paper**. It does not change when the application palette or appearance changes. Define the editor's relevant CSS variables explicitly, including surface, text, syntax, delimiter/bracket, disclosure-arrow, selection, and focus colors, so dark editor elements cannot inherit illegible black from the library defaults. Paper intentionally remains light even in a dark application. Inspect both modes and selected/focused states rather than assuming a single override colors everything.
+- Use the existing CSS/Svelte styling and restrained transitions for appearance and navigation; smooth corners without large animated layouts. Respect `prefers-reduced-motion: reduce` by disabling nonessential transitions and animation. No UI/design-system dependency.
+
+## Preference storage and privacy
+
+- Persist only a small, versioned, validated set of primitive UI choices in browser `localStorage`: appearance, application palette, editor theme, font, and explicitly chosen view. Read on mount, apply immediately, write only after a user changes a setting, and ignore malformed, unknown, or older incompatible values without breaking rendering. Guard storage reads/writes because storage can be blocked; in-memory choices must still work in that case. Do not persist a guessed responsive default as an explicit view.
+- Never persist JSON source, file contents/name, selections, history, clipboard contents, analysis, diagnostics, or processing state. No uploads, accounts, telemetry, remote fonts/scripts, or automatic document recovery. The Settings page should state plainly that preferences remain in this browser but document content is not saved.
+- Keep settings separate from document state and processing; the editor integration receives only presentation choices it needs. Avoid storage listeners, sync across tabs, and a generalized settings framework unless a real requirement emerges.
+
+## Tree disclosure accessibility
+
+The installed `svelte-jsoneditor` renders `.jse-expand` as a narrow button without `aria-expanded` or a stateful accessible label. Patch the pinned dependency in a reproducible, reviewable way at the component that owns the disclosure state; do not imperatively rewrite its DOM or make the editable row toggle. The actual button must expose correct `aria-expanded` and a meaningful accessible name for its target, keep keyboard Enter/Space behavior, and remain synchronized when expansion changes through any editor action. Size its real hit area to at least 40 × 40 CSS pixels on desktop and 44 × 44 on narrow/touch layouts, with visible focus and no overlap with keys, indentation, or adjacent actions. Verify behavior and geometry against the installed library; if a stable patch cannot meet these constraints, stop for design revision rather than shipping CSS-only semantics.
+
+## Verification and boundaries
+
+- Use focused tests for preference validation/defaults, persistence failure, viewport default versus explicit view, and Settings navigation retaining document/editor state; test any dependency patch's state behavior with the smallest maintainable check. Run `npm run check`, `npm test`, `npm run build`, `npm run format:check`, and `git diff --check` before completion.
+- Inspect the running UI using the existing Chrome DevTools session at wide and narrow widths. Check each application palette in light and dark, each independent editor theme in Code and Tree, keyboard/focus and reduced-motion behavior, disclosure names/states and target measurements, Settings/Back with unsaved edits and history, local font requests, and absence of payload uploads. Record exactly what was checked and what was not. **Do not run E2E tests.** Chrome-only inspection does not prove other browsers or native IME behavior.
+- Preserve the separate release blocker documented in `docs/verification/2026-10-17-release.md`: the required 1 MB inspection case exceeded its guardrail and 100 MB cases crashed or timed out. Visual work does not establish release readiness.
