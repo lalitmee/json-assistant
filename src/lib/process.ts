@@ -44,7 +44,7 @@ export function processSource(request: ProcessRequest): ProcessResult {
   } while (token !== K.eof)
 
   const errors: { error: ParseErrorCode; offset: number; length: number }[] = []
-  parseJsonc(source, errors, { disallowComments: true, allowTrailingComma: false, allowEmptyContent: false })
+  if (!diagnostics.length) parseJsonc(source, errors, { disallowComments: true, allowTrailingComma: false, allowEmptyContent: false })
   if (!diagnostics.length && errors.length) {
     const { error, offset } = errors[0]
     diagnostics.push({ kind: 'syntax', message: printParseErrorCode(error), offset, ...position(source, offset) })

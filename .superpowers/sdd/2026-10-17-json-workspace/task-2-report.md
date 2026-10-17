@@ -24,3 +24,15 @@ The integration remains a gate, not a full product UI: browser tests exercise wo
 - `src/lib/process.ts`, `src/lib/process.worker.ts`, `src/lib/processing.ts`
 - `src/lib/process.test.ts`, `src/lib/processing.test.ts`, `src/lib/document.test.ts`
 - `src/App.svelte`, `tests/editor-gate.spec.ts`
+
+## Review fix — preflight must stop recursive parsing
+
+The Important review finding was valid: scanner guardrail diagnostics previously did not stop the unconditional `parseJsonc` call. Added a regression using 10,000 nested arrays. Before the fix, it failed with `RangeError: Maximum call stack size exceeded`; after the fix, scanner diagnostics prevent parse and format paths from running.
+
+- Focused: `npm test -- src/lib/process.test.ts src/lib/processing.test.ts src/lib/document.test.ts` — **26 passed**.
+- Full unit suite: `npm test` — **26 passed**.
+- `npm run check` — **0 errors, 0 warnings**.
+- `npm run build` — passed; existing large main-chunk warning remains.
+- `npm run test:e2e -- tests/editor-gate.spec.ts` — **22/26 passed**. Four failures were the known intermittent editor-fill race, where `{}` appeared appended after `locator.fill` (three Chromium cases and one Firefox case). The new worker operation cases passed in both browsers.
+
+The deferred Minor finding about the stale-revision coordinator test remains unchanged and outstanding. Manual native IME verification remains outstanding.

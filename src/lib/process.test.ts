@@ -15,6 +15,14 @@ describe('processSource', () => {
     expect(result.analysis).toMatchObject({ revision: 7, bytes: 4, valid: true, depth: 0, nodes: 1 })
     expect(processSource(request('"é"')).analysis.bytes).toBe(4)
   })
+  it('rejects deeply nested input at preflight without entering recursive parsing', () => {
+    const source = `${'['.repeat(10_000)}0${']'.repeat(10_000)}`
+    expect(() => processSource(request(source))).not.toThrow()
+    expect(processSource(request(source)).analysis).toMatchObject({
+      valid: false,
+      diagnostics: [{ kind: 'syntax', message: 'JSON exceeds safe processing limits' }]
+    })
+  })
   it.each(['', '{"a":}', '{"a":1,}', '//x\n{}', 'NaN', 'Infinity'])('rejects invalid strict JSON %j', source => {
     expect(processSource(request(source)).analysis).toMatchObject({ valid: false, diagnostics: [{ kind: 'syntax', line: expect.any(Number), column: expect.any(Number) }] })
     expect(processSource(request(source, 'format')).source).toBeUndefined()
