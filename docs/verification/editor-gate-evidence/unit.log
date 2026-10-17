@@ -5,7 +5,8 @@
 
  RUN  v5.0.5 /home/lalitmee/Projects/Personal/Github/json-assistant-worktrees/json-workspace
 
-No test files found, exiting with code 1
 
-include: src/**/*.test.ts
-exclude:  **/node_modules/**, **/.git/**
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  21:18:33
+   Duration  8.62s (transform 81%, import 19%)
