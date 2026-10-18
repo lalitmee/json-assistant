@@ -389,6 +389,59 @@ test("format and minify are undoable, redoable, and superseded by a new edit", a
   ).toBeDisabled();
 });
 
+test("formatting and minifying show a non-blocking editor overlay", async ({
+  page,
+}) => {
+  const largeSource = JSON.stringify({
+    items: Array.from({ length: 200 }, (_, id) => ({
+      id,
+      label: `item-${id}`,
+    })),
+  });
+  await page.evaluate(
+    (text) => (window as any).__benchmarkLoad(text),
+    largeSource,
+  );
+  const overlay = page.getByTestId("processing-overlay");
+  await page.evaluate(() => {
+    const postMessage = Worker.prototype.postMessage;
+    Worker.prototype.postMessage = function (message) {
+      if (message.operation !== "analyze")
+        setTimeout(
+          () => postMessage.call(this, message),
+          message.operation === "minify" ? 5000 : 1000,
+        );
+      else postMessage.call(this, message);
+    };
+  });
+
+  await page.getByRole("button", { name: "Format", exact: true }).click();
+  await expect(overlay).toBeVisible();
+  await expect(overlay).toHaveText("Formatting");
+  await expect(overlay).toHaveAttribute("aria-live", "polite");
+  await expect(overlay).toHaveCSS("pointer-events", "none");
+  await expect(
+    page.getByRole("region", { name: "Source pane" }),
+  ).toHaveAttribute("aria-busy", "true");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(page.locator(".processing-spinner")).toHaveCSS(
+    "animation-name",
+    "none",
+  );
+  await expect(overlay).toBeHidden();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".panes")).toHaveAttribute("data-view", "code");
+  await page.getByRole("button", { name: "Minify", exact: true }).click();
+  await expect(overlay).toBeVisible();
+  await expect(overlay).toHaveText("Minifying");
+  await source(page, '{"edited":true}');
+  await expect(overlay).toBeVisible();
+  await page.getByRole("button", { name: "Cancel processing" }).click();
+  await expect(overlay).toBeHidden();
+  await expect(page.getByTestId("source")).toHaveText('{"edited":true}');
+});
+
 test("invalid source remains exact and disables tree edits while diagnostics stay visible", async ({
   page,
 }) => {

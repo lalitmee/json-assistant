@@ -57,6 +57,7 @@
   let panes: InstanceType<typeof EditorPanes>;
   let processor: ReturnType<typeof createProcessor>;
   let busy = false;
+  let processingOperation: ProcessRequest["operation"] | undefined;
   let processId = 0;
   let cancelledRevision = -1;
   let copied = "";
@@ -104,6 +105,7 @@
       operation,
     };
     busy = true;
+    processingOperation = operation;
     document = { ...document, processing: true };
     try {
       const result = await processor.run(request);
@@ -112,6 +114,7 @@
     } finally {
       if (id === processId) {
         busy = false;
+        processingOperation = undefined;
         document = { ...document, processing: false };
       }
     }
@@ -181,6 +184,7 @@
     processId++;
     processor.cancel();
     busy = false;
+    processingOperation = undefined;
     cancelledRevision = -1;
     document = { ...createDocument(source), revision: document.revision + 1 };
     ioError = "";
@@ -410,6 +414,7 @@
         {hasContent}
         {view}
         theme={preferences.theme}
+        {processingOperation}
         font={preferences.font}
         animatedIndentGuides={preferences.animatedIndentGuides}
         onEdit={edit}
@@ -420,6 +425,7 @@
           cancelledRevision = document.revision;
           processor.cancel();
           busy = false;
+          processingOperation = undefined;
           document = { ...document, processing: false };
         }}
         onCopyPath={copyPath}
@@ -434,14 +440,18 @@
     <section aria-label="Document status">
       <p>
         {document.processing
-          ? "Processing"
+          ? processingOperation === "format"
+            ? "Formatting"
+            : processingOperation === "minify"
+              ? "Minifying"
+              : "Analyzing"
           : cancelledRevision === document.revision && !document.analysis
             ? "Processing cancelled"
             : document.analysis
               ? document.analysis.valid
                 ? "Valid JSON"
                 : "Invalid JSON"
-              : "Processing"} · {document.analysis?.bytes ??
+              : "Analyzing"} · {document.analysis?.bytes ??
           new TextEncoder().encode(document.source).length} UTF-8 bytes · {isDirty(
           document,
         )

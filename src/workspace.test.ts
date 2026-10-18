@@ -100,7 +100,10 @@ describe("workspace controls", () => {
       /aria-label="Open settings"[^>]*><svg[^>]*><path d="M19\.14,12\.94/,
     );
     expect(body).toMatch(
-      /aria-label="Undo document change"[^>]*><svg[^>]*><path d="M12\.5 8/,
+      /aria-label="Undo document change"[^>]*><svg[^>]*><path d="M280-200v-80h284/,
+    );
+    expect(body).toMatch(
+      /aria-label="Redo document change"[^>]*><svg[^>]*><path d="M396-200q-97 0-166\.5-63T160-420/,
     );
   });
   it("right-aligns history tooltips within the code pane", () => {
@@ -322,6 +325,12 @@ describe("workspace controls", () => {
       /\.pane-actions\[data-processing="true"\][^{]*\{[^}]*visibility:\s*hidden/,
     );
     expect(panes).not.toMatch(/#if !state\.processing && hasContent/);
+  });
+  it("shows which JSON operation is in progress", () => {
+    const app = readFileSync(new URL("./App.svelte", import.meta.url), "utf8");
+    expect(app).toMatch(/processingOperation === "format"\s*\?\s*"Formatting"/);
+    expect(app).toMatch(/processingOperation === "minify"\s*\?\s*"Minifying"/);
+    expect(app).toContain('"Analyzing"');
   });
   it("styles selection tooltips and code-fold controls for visibility", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");

@@ -14,6 +14,7 @@
   } from "svelte-jsoneditor";
   import type { JSONPatchDocument } from "immutable-json-patch";
   import type { Preferences } from "./preferences";
+  import type { ProcessRequest } from "./process";
   import { parse, stringify } from "lossless-json";
   import {
     applyTreePatch,
@@ -28,6 +29,7 @@
   export let hasContent: boolean;
   export let view: View;
   export let theme: Preferences["theme"];
+  export let processingOperation: ProcessRequest["operation"] | undefined;
   export let font: Preferences["font"];
   export let animatedIndentGuides: boolean;
   export let onEdit: (snapshot: Snapshot) => void;
@@ -263,7 +265,12 @@
       onpointermove={resizeDivider}
     ></div>
   {/if}
-  <section aria-label="Source pane" hidden={view === "tree"}>
+  <section
+    aria-label="Source pane"
+    aria-busy={processingOperation === "format" ||
+      processingOperation === "minify"}
+    hidden={view === "tree"}
+  >
     <div class="pane-header">
       <h2>Code</h2>
       <div class="pane-actions" data-processing={state.processing}>
@@ -279,9 +286,9 @@
             aria-label="Undo document change"
             disabled={!state.past.length}
             onclick={() => onHistory("undo")}
-            ><svg viewBox="0 0 24 24" aria-hidden="true"
+            ><svg viewBox="0 -960 960 960" aria-hidden="true"
               ><path
-                d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"
+                d="M280-200v-80h284q63 0 109.5-40T720-420q0-60-46.5-100T564-560H312l104 104-56 56-200-200 200-200 56 56-104 104h252q97 0 166.5 63T800-420q0 94-69.5 157T564-200H280Z"
               /></svg
             ></button
           ></Tooltip
@@ -292,9 +299,9 @@
             aria-label="Redo document change"
             disabled={!state.future.length}
             onclick={() => onHistory("redo")}
-            ><svg viewBox="0 0 24 24" aria-hidden="true"
+            ><svg viewBox="0 -960 960 960" aria-hidden="true"
               ><path
-                d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"
+                d="M396-200q-97 0-166.5-63T160-420q0-94 69.5-157T396-640h252L544-744l56-56 200 200-200 200-56-56 104-104H396q-63 0-109.5 40T240-420q0 60 46.5 100T396-280h284v80H396Z"
               /></svg
             ></button
           ></Tooltip
@@ -324,7 +331,13 @@
     />
   </section>
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-  <section aria-label="Tree pane" tabindex="0" hidden={view === "code"}>
+  <section
+    aria-label="Tree pane"
+    aria-busy={processingOperation === "format" ||
+      processingOperation === "minify"}
+    tabindex="0"
+    hidden={view === "code"}
+  >
     <div class="pane-header">
       <h2>Tree</h2>
       <div class="pane-actions">
@@ -421,6 +434,20 @@
       />
     </div>
   </section>
+  {#if processingOperation === "format" || processingOperation === "minify"}
+    <div
+      class="processing-overlay"
+      data-testid="processing-overlay"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      <span class="processing-spinner" aria-hidden="true"></span>
+      <span
+        >{processingOperation === "format" ? "Formatting" : "Minifying"}</span
+      >
+    </div>
+  {/if}
 </div>
 <output data-testid="echo-count" hidden>{echoCount}</output>
 <output data-testid="tree-selection" hidden
