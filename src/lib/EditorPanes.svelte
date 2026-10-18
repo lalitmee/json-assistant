@@ -27,7 +27,7 @@
   export let state: DocumentState;
   export let hasContent: boolean;
   export let view: View;
-  export let editorTheme: Preferences["editorTheme"];
+  export let theme: Preferences["theme"];
   export let font: Preferences["font"];
   export let onEdit: (snapshot: Snapshot) => void;
   export let onSelection: (selection: Selection) => void;
@@ -239,7 +239,7 @@
 <div
   class="panes"
   data-view={view}
-  data-editor-theme={editorTheme}
+  data-theme={theme}
   data-editor-font={font}
   style={`--split: ${split}%`}
 >

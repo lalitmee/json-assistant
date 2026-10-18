@@ -32,9 +32,34 @@ describe("workspace controls", () => {
   it("keeps document bytes independent of presentation preferences", () => {
     const { body } = render(App);
     expect(body).toContain('data-appearance="system"');
+    expect(body).toContain('data-theme="cobalt2"');
+    expect(body).toContain('aria-label="Color theme"');
     expect(body).toContain('data-editor-font="system"');
     expect(body).toContain('<pre data-testid="source">{}</pre>');
     expect(body).toContain('data-testid="revision" hidden="">0');
+  });
+  it("offers one theme selector for app and Code/Tree", () => {
+    const app = readFileSync(new URL("./App.svelte", import.meta.url), "utf8");
+    const { body } = render(App);
+    expect(app.match(/label="Color theme"/g)).toHaveLength(1);
+    expect(body).toContain('aria-label="Mode"');
+    expect(body).toContain('aria-label="Editor font"');
+    expect(body).not.toContain("Application palette");
+    expect(body).not.toContain("Code and Tree theme");
+    for (const label of [
+      "Cobalt2",
+      "Tokyo Night",
+      "Catppuccin",
+      "Rosé Pine",
+      "Solarized",
+      "VS Code Dark+",
+      "GitHub",
+    ]) {
+      expect(app).toContain(`label: "${label}"`);
+    }
+    expect(body).toContain(
+      'class="panes" data-view="split" data-theme="cobalt2"',
+    );
   });
   it("uses a labeled icon-only Back action alongside the app mark", () => {
     const { body } = render(App);
@@ -169,12 +194,7 @@ describe("workspace controls", () => {
     ).toContain("Apache License");
     expect(body).toContain('class="icon-segment"');
     expect(body).not.toContain('aria-label="Mode" aria-expanded="false"');
-    expect(body).toContain(
-      'aria-label="Application palette" aria-expanded="false"',
-    );
-    expect(body).toContain(
-      'aria-label="Code and Tree theme" aria-expanded="false"',
-    );
+    expect(body).toContain('aria-label="Color theme" aria-expanded="false"');
     expect(body).toContain('aria-label="Editor font" aria-expanded="false"');
     expect(body).not.toContain("<select");
   });

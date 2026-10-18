@@ -299,7 +299,7 @@
 <div
   class="app-shell"
   data-appearance={preferences.appearance}
-  data-palette={preferences.palette}
+  data-theme={preferences.theme}
 >
   <main class="workspace" hidden={page === "settings"}>
     <header class="workspace-header">
@@ -409,7 +409,7 @@
         state={document}
         {hasContent}
         {view}
-        editorTheme={preferences.editorTheme}
+        theme={preferences.theme}
         font={preferences.font}
         onEdit={edit}
         onSelection={select}
@@ -544,28 +544,19 @@
           />
         </div>
         <PreferenceDropdown
-          label="Application palette"
+          label="Color theme"
           options={[
-            { value: "ocean", label: "Ocean" },
-            { value: "graphite", label: "Graphite" },
-            { value: "forest", label: "Forest" },
+            { value: "cobalt2", label: "Cobalt2" },
+            { value: "tokyo-night", label: "Tokyo Night" },
+            { value: "catppuccin", label: "Catppuccin" },
+            { value: "rose-pine", label: "Rosé Pine" },
+            { value: "solarized", label: "Solarized" },
+            { value: "vscode-dark-plus", label: "VS Code Dark+" },
+            { value: "github", label: "GitHub" },
           ]}
-          value={preferences.palette}
-          onChange={(palette) =>
-            changePreference({ palette: palette as Preferences["palette"] })}
-        />
-        <PreferenceDropdown
-          label="Code and Tree theme"
-          options={[
-            { value: "midnight", label: "Midnight" },
-            { value: "orchid", label: "Orchid" },
-            { value: "paper", label: "Paper" },
-          ]}
-          value={preferences.editorTheme}
-          onChange={(editorTheme) =>
-            changePreference({
-              editorTheme: editorTheme as Preferences["editorTheme"],
-            })}
+          value={preferences.theme}
+          onChange={(theme) =>
+            changePreference({ theme: theme as Preferences["theme"] })}
         />
         <PreferenceDropdown
           label="Editor font"
