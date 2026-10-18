@@ -263,7 +263,13 @@
   <section aria-label="Source pane" hidden={view === "tree"}>
     <div class="pane-header">
       <h2>Code <small>Source</small></h2>
-      <div class="pane-actions">
+      <div class="pane-actions" data-processing={state.processing}>
+        <span class="cancel-slot">
+          {#if state.processing}<button
+              aria-label="Cancel processing"
+              onclick={onCancel}>Cancel</button
+            >{:else}<span aria-hidden="true"></span>{/if}
+        </span>
         <span class="history-label">Document</span>
         <Tooltip label="Undo document change (Ctrl/⌘+Z)" align="end"
           ><button
@@ -291,13 +297,12 @@
             ></button
           ></Tooltip
         >
-        {#if state.processing}<button
-            aria-label="Cancel processing"
-            onclick={onCancel}>Cancel</button
-          >{:else if hasContent}<button
+        {#if hasContent}<button
+            class="format-action"
             disabled={state.processing}
             onclick={onFormat}>Format</button
           ><button
+            class="minify-action"
             disabled={!state.analysis?.valid || state.processing}
             onclick={onMinify}>Minify</button
           >{/if}
@@ -321,6 +326,31 @@
     <div class="pane-header">
       <h2>Tree <small>Structure</small></h2>
       <div class="pane-actions">
+        {#if hasContent && !unavailable}
+          <Tooltip label="Expand all" align="end"
+            ><button
+              class="icon-button"
+              aria-label="Expand all"
+              onclick={() => treeEditor.expand([], () => true)}
+              ><svg viewBox="0 0 24 24" aria-hidden="true"
+                ><path
+                  d="M7 10l5 5 5-5H7zm-4 2a9 9 0 1 1 18 0 9 9 0 0 1-18 0zm2 0a7 7 0 1 0 14 0 7 7 0 0 0-14 0z"
+                /></svg
+              ></button
+            ></Tooltip
+          ><Tooltip label="Collapse all" align="end"
+            ><button
+              class="icon-button"
+              aria-label="Collapse all"
+              onclick={() => treeEditor.collapse([], true)}
+              ><svg viewBox="0 0 24 24" aria-hidden="true"
+                ><path
+                  d="M7 14l5-5 5 5H7zm-4-2a9 9 0 1 1 18 0 9 9 0 0 1-18 0zm2 0a7 7 0 1 0 14 0 7 7 0 0 0-14 0z"
+                /></svg
+              ></button
+            ></Tooltip
+          >
+        {/if}
         {#if hasContent && !unavailable}<Tooltip
             label="Search fields"
             align="end"

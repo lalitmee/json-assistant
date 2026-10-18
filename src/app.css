@@ -228,7 +228,7 @@ button:where(:not(.jse-main button)):disabled {
   top: 0;
   z-index: 10;
   margin: -12px -12px 0;
-  padding: 12px;
+  padding: 8px 12px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
@@ -545,18 +545,31 @@ h2 small {
 .pane-actions .history-label {
   margin-right: 2px;
 }
+.cancel-slot,
+.cancel-slot > span {
+  display: inline-flex;
+  width: 76px;
+  flex: 0 0 76px;
+}
+.cancel-slot > span {
+  visibility: hidden;
+}
 .pane-actions button,
 .selection-actions button:not(.icon-button) {
   min-height: 40px;
 }
 .selection-actions {
   position: relative;
-  z-index: 2;
+  z-index: 4;
   min-height: 48px;
   padding: 4px 10px;
   border-bottom: 1px solid var(--border);
 }
-.selection-actions span {
+.selection-actions .tooltip-bubble {
+  top: auto;
+  bottom: calc(100% + 7px);
+}
+.selection-actions > span {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -671,6 +684,15 @@ pre[data-testid="source"] {
   color: var(--jse-text-color);
   background: var(--jse-hover-background-color);
 }
+.panes .cm-foldGutter .cm-gutterElement {
+  min-width: 24px;
+  color: var(--jse-delimiter-color);
+  font-size: 18px;
+  line-height: 1.4;
+}
+.panes .cm-foldGutter .cm-gutterElement span {
+  font-size: inherit;
+}
 .panes[data-editor-theme="orchid"] {
   --jse-background-color: #241d32;
   --jse-text-color: #f1e7ff;
@@ -746,7 +768,7 @@ pre[data-testid="source"] {
   }
   .workspace-header {
     margin: -10px -10px 0;
-    padding: 10px;
+    padding: 8px 10px;
   }
   .workspace-header {
     align-items: flex-start;

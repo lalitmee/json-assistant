@@ -42,7 +42,8 @@ describe("workspace controls", () => {
     const { body } = render(App);
     expect(body).toMatch(/aria-label="Back to workspace"[^>]*><svg/);
     expect(body).toContain('class="brand-mark"');
-    expect(body).not.toContain("JSON workspace / Preferences");
+    expect(body).toContain("JSON Assistant");
+    expect(body).not.toContain("JSON workspace");
   });
   it("groups filename and status and uses the same logo asset in both headers", () => {
     const { body } = render(App);
@@ -90,10 +91,14 @@ describe("workspace controls", () => {
   it("uses a shared header and connected workspace view control on settings", () => {
     const { body } = render(App);
     expect(body).toMatch(
-      /class="settings-header workspace-header"[\s\S]*JSON workspace/,
+      /class="settings-header workspace-header"[\s\S]*JSON Assistant/,
     );
     expect(body).toContain('role="group" aria-label="Workspace view"');
     expect(body).toContain('class="segment-indicator"');
+  });
+  it("keeps header vertical padding compact", () => {
+    const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
+    expect(css).toMatch(/\.workspace-header\s*\{[^}]*padding:\s*8px 12px/);
   });
   it("keeps the workspace view label and narrower toggle on one row", () => {
     const { body } = render(App);
@@ -184,6 +189,50 @@ describe("workspace controls", () => {
         "utf8",
       ),
     ).toContain('aria-label="Cancel processing"');
+  });
+  it("keeps cancel before history and provides recursive tree controls", () => {
+    const panes = readFileSync(
+      new URL("./lib/EditorPanes.svelte", import.meta.url),
+      "utf8",
+    );
+    expect(panes.indexOf('aria-label="Cancel processing"')).toBeLessThan(
+      panes.indexOf('aria-label="Undo document change"'),
+    );
+    expect(panes).toContain('aria-label="Expand all"');
+    expect(panes).toContain('aria-label="Collapse all"');
+    expect(panes).toContain("treeEditor.expand([], () => true)");
+    expect(panes).toContain("treeEditor.collapse([], true)");
+  });
+  it("keeps format actions in the toolbar layout while processing", () => {
+    const panes = readFileSync(
+      new URL("./lib/EditorPanes.svelte", import.meta.url),
+      "utf8",
+    );
+    const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
+    expect(panes).toContain("data-processing={state.processing}");
+    expect(panes).toContain('class="format-action"');
+    expect(panes).toContain('class="minify-action"');
+    expect(panes).toContain(
+      'class="format-action"\n            disabled={state.processing}',
+    );
+    expect(panes).toContain(
+      'class="minify-action"\n            disabled={!state.analysis?.valid || state.processing}',
+    );
+    expect(css).not.toMatch(
+      /\.pane-actions\[data-processing="true"\][^{]*\{[^}]*visibility:\s*hidden/,
+    );
+    expect(panes).not.toMatch(/#if !state\.processing && hasContent/);
+  });
+  it("styles selection tooltips and code-fold controls for visibility", () => {
+    const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
+    expect(css).toMatch(/\.selection-actions\s*\{[^}]*z-index:\s*4/);
+    expect(css).toMatch(
+      /\.selection-actions \.tooltip-bubble\s*\{[^}]*bottom:\s*calc\(100% \+ 7px\)/,
+    );
+    expect(css).toMatch(/\.cm-foldGutter \.cm-gutterElement/);
+    expect(css).toMatch(
+      /\.cm-foldGutter \.cm-gutterElement\s*\{[^}]*font-size:\s*18px/,
+    );
   });
   it("themes the JSON editor context menu with the active workspace palette", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");

@@ -8,6 +8,15 @@ async function source(page: Page, text: string) {
   await expect(page.getByTestId("source")).toHaveText(text);
 }
 
+async function chooseView(page: Page, view: "Code" | "Tree" | "Split") {
+  await page.getByRole("button", { name: "Open settings" }).click();
+  await page
+    .getByRole("group", { name: "Workspace view" })
+    .getByRole("button", { name: view, exact: true })
+    .click();
+  await page.getByRole("button", { name: "Back to workspace" }).click();
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
 });
@@ -490,6 +499,30 @@ test("search finds text and value in collapsed tree branches and reveals the mat
   ).toBeVisible();
 });
 
+test("expand all and collapse all affect every nested tree branch", async ({
+  page,
+}) => {
+  await source(page, '{"outer":{"middle":{"inner":1}}}');
+  await chooseView(page, "Tree");
+  const tree = page.getByRole("region", { name: "Tree pane" });
+  const inner = tree.getByRole("treeitem", { name: "inner : 1", exact: true });
+
+  await page.getByRole("button", { name: "Collapse all" }).click();
+  await expect(inner).toHaveCount(0);
+  await page.getByRole("button", { name: "Expand all" }).click();
+  await expect(inner).toBeVisible();
+});
+
+test("code folding gutter is visibly enlarged", async ({ page }) => {
+  await source(page, '{"outer":{"inner":1}}');
+  await page.getByRole("button", { name: "Format", exact: true }).click();
+  const gutter = page
+    .locator(".cm-foldGutter .cm-gutterElement:visible")
+    .first();
+  await expect(gutter).toBeVisible();
+  await expect(gutter).toHaveCSS("font-size", "18px");
+});
+
 test("path action copies an escaped JSONPath for selected keys", async ({
   page,
 }) => {
@@ -504,12 +537,15 @@ test("path action copies an escaped JSONPath for selected keys", async ({
     });
   });
   await source(page, String.raw`{"a.\"b\\c":1}`);
-  await page.getByRole("button", { name: "Tree", exact: true }).click();
+  await chooseView(page, "Tree");
   const tree = page.getByRole("region", { name: "Tree pane" });
   await tree
     .getByRole("treeitem", { name: 'a.\"b\\c : 1', exact: true })
     .click();
-  await page.getByRole("button", { name: /Copy path/ }).click();
+  const copyPath = page.getByRole("button", { name: "Copy path", exact: true });
+  await copyPath.hover();
+  await expect(page.getByRole("tooltip", { name: "Copy path" })).toBeVisible();
+  await copyPath.click();
   const copiedPath = await page.evaluate(() => (window as any).__clipboardText);
   expect(copiedPath).toBe(String.raw`["a.\"b\c"]`);
   await expect
@@ -537,9 +573,17 @@ test("copy subtree preserves selected source tokens exactly", async ({
     });
   });
   await source(page, json);
-  await page.getByRole("button", { name: "Tree", exact: true }).click();
+  await chooseView(page, "Tree");
   await page.getByRole("treeitem", { name: /obj/ }).last().click();
-  await page.getByRole("button", { name: "Copy subtree", exact: true }).click();
+  const copySubtree = page.getByRole("button", {
+    name: "Copy subtree",
+    exact: true,
+  });
+  await copySubtree.hover();
+  await expect(
+    page.getByRole("tooltip", { name: "Copy subtree" }),
+  ).toBeVisible();
+  await copySubtree.click();
   expect(await page.evaluate(() => (window as any).__clipboardText)).toBe(
     String.raw`{"n":9007199254740993,"s":"\u0061","decimal":1.2300}`,
   );

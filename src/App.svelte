@@ -306,7 +306,7 @@
       <div class="identity">
         <img class="brand-mark" src="/logo.svg" alt="" />
         <div>
-          <h1>JSON workspace</h1>
+          <h1>JSON Assistant</h1>
           <p>Private developer workspace</p>
         </div>
       </div>
@@ -495,7 +495,7 @@
       <div class="identity">
         <img class="brand-mark" src="/logo.svg" alt="" />
         <div>
-          <span class="settings-brand-name">JSON workspace</span>
+          <span class="settings-brand-name">JSON Assistant</span>
           <p>Private developer workspace</p>
         </div>
       </div>
