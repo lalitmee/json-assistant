@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Tooltip from "./Tooltip.svelte";
   import {
     JSONEditor,
     Mode,
@@ -24,12 +25,14 @@
   } from "./document";
 
   export let state: DocumentState;
+  export let hasContent: boolean;
   export let view: View;
   export let editorTheme: Preferences["editorTheme"];
   export let font: Preferences["font"];
   export let onEdit: (snapshot: Snapshot) => void;
   export let onSelection: (selection: Selection) => void;
   export let onHistory: (direction: "undo" | "redo") => void;
+  export let onCancel: () => void;
   export let onCopyPath: (path: string) => void;
   export let onCopySubtree: (path: Array<string | number>) => void;
   export let onFormat: () => void;
@@ -262,33 +265,42 @@
       <h2>Code <small>Source</small></h2>
       <div class="pane-actions">
         <span class="history-label">Document</span>
-        <button
-          class="icon-button"
-          aria-label="Undo document change"
-          title="Undo document change (Ctrl/⌘+Z)"
-          disabled={!state.past.length}
-          onclick={() => onHistory("undo")}
-          ><svg viewBox="0 0 24 24" aria-hidden="true"
-            ><path d="M9 8 4 12l5 4M4 12h10a5 5 0 0 1 0 10" /></svg
-          ></button
+        <Tooltip label="Undo document change (Ctrl/⌘+Z)" align="end"
+          ><button
+            class="icon-button"
+            aria-label="Undo document change"
+            disabled={!state.past.length}
+            onclick={() => onHistory("undo")}
+            ><svg viewBox="0 0 24 24" aria-hidden="true"
+              ><path
+                d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"
+              /></svg
+            ></button
+          ></Tooltip
         >
-        <button
-          class="icon-button"
-          aria-label="Redo document change"
-          title="Redo document change (Ctrl/⌘+Shift+Z)"
-          disabled={!state.future.length}
-          onclick={() => onHistory("redo")}
-          ><svg viewBox="0 0 24 24" aria-hidden="true"
-            ><path d="m15 8 5 4-5 4m5-4H10a5 5 0 0 0 0 10" /></svg
-          ></button
+        <Tooltip label="Redo document change (Ctrl/⌘+Shift+Z)" align="end"
+          ><button
+            class="icon-button"
+            aria-label="Redo document change"
+            disabled={!state.future.length}
+            onclick={() => onHistory("redo")}
+            ><svg viewBox="0 0 24 24" aria-hidden="true"
+              ><path
+                d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"
+              /></svg
+            ></button
+          ></Tooltip
         >
-        <button
-          disabled={!state.analysis?.valid || state.processing}
-          onclick={onFormat}>Format</button
-        ><button
-          disabled={!state.analysis?.valid || state.processing}
-          onclick={onMinify}>Minify</button
-        >
+        {#if state.processing}<button
+            aria-label="Cancel processing"
+            onclick={onCancel}>Cancel</button
+          >{:else if hasContent}<button
+            disabled={state.processing}
+            onclick={onFormat}>Format</button
+          ><button
+            disabled={!state.analysis?.valid || state.processing}
+            onclick={onMinify}>Minify</button
+          >{/if}
       </div>
     </div>
     <JSONEditor
@@ -309,14 +321,19 @@
     <div class="pane-header">
       <h2>Tree <small>Structure</small></h2>
       <div class="pane-actions">
-        {#if !unavailable}<button
-            class="icon-button"
-            aria-label="Search fields"
-            title="Search fields"
-            onclick={openSearch}
-            ><svg viewBox="0 0 24 24" aria-hidden="true"
-              ><circle cx="11" cy="11" r="7" /><path d="m16 16 5 5" /></svg
-            ></button
+        {#if hasContent && !unavailable}<Tooltip
+            label="Search fields"
+            align="end"
+            ><button
+              class="icon-button"
+              aria-label="Search fields"
+              onclick={openSearch}
+              ><svg viewBox="0 0 24 24" aria-hidden="true"
+                ><path
+                  d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
+                /></svg
+              ></button
+            ></Tooltip
           >{/if}
       </div>
     </div>
@@ -330,30 +347,32 @@
         state.selection.tree.type !== "multi"
           ? stringifyJSONPath(state.selection.tree.path)
           : "Select a field to copy its path"}</span
-      ><button
-        class="icon-button"
-        aria-label="Copy path"
-        title="Copy path"
-        disabled={!state.selection.tree || unavailable}
-        onclick={copySelectedPath}
-        ><svg viewBox="0 0 24 24" aria-hidden="true"
-          ><rect x="8" y="8" width="11" height="11" rx="2" /><path
-            d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"
-          /></svg
-        ></button
-      >
-      <button
-        class="icon-button"
-        aria-label="Copy subtree"
-        title="Copy subtree"
-        disabled={!state.selection.tree || unavailable}
-        onclick={copySelectedSubtree}
-        ><svg viewBox="0 0 24 24" aria-hidden="true"
-          ><rect x="8" y="8" width="12" height="12" rx="2" /><path
-            d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"
-          /></svg
-        ></button
-      >
+      >{#if hasContent && !unavailable && state.selection.tree && state.selection.tree.type !== "text" && state.selection.tree.type !== "multi"}<Tooltip
+          label="Copy path"
+          align="end"
+          ><button
+            class="icon-button"
+            aria-label="Copy path"
+            onclick={copySelectedPath}
+            ><svg viewBox="0 0 24 24" aria-hidden="true"
+              ><path
+                d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"
+              /></svg
+            ></button
+          ></Tooltip
+        >
+        <Tooltip label="Copy subtree" align="end"
+          ><button
+            class="icon-button"
+            aria-label="Copy subtree"
+            onclick={copySelectedSubtree}
+            ><svg viewBox="0 0 24 24" aria-hidden="true"
+              ><path
+                d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm-1 4 6 6v10c0 1.1-.9 2-2 2H7.99C6.89 23 6 22.1 6 21l.01-14c0-1.1.89-2 1.99-2h7zm-1 7h5.5L14 6.5V12z"
+              /></svg
+            ></button
+          ></Tooltip
+        >{/if}
     </div>
     <div class="tree-editor" hidden={unavailable}>
       <JSONEditor

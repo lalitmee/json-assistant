@@ -1,4 +1,7 @@
 <script lang="ts">
+  import Tooltip from "./lib/Tooltip.svelte";
+  import SegmentedControl from "./lib/SegmentedControl.svelte";
+  import PreferenceDropdown from "./lib/PreferenceDropdown.svelte";
   import { onMount, tick } from "svelte";
   import EditorPanes from "./lib/EditorPanes.svelte";
   import type { JSONPatchDocument } from "immutable-json-patch";
@@ -25,6 +28,7 @@
   } from "./lib/preferences";
 
   let document = createDocument();
+  $: hasContent = document.revision > 0 && document.source.trim().length > 0;
   let view: View = "split";
   let viewChosen = false;
   let preferences: Preferences = { ...defaultPreferences };
@@ -300,31 +304,33 @@
   <main class="workspace" hidden={page === "settings"}>
     <header class="workspace-header">
       <div class="identity">
-        <span class="brand-mark" aria-hidden="true">{"{ }"}</span>
+        <img class="brand-mark" src="/logo.svg" alt="" />
         <div>
           <h1>JSON workspace</h1>
           <p>Private developer workspace</p>
         </div>
       </div>
-      <div class="document-name" title="document.json">
-        document.json <span
-          >{isDirty(document) ? "● Unsaved" : "· Unchanged"}</span
+      <div class="document-meta">
+        <div class="document-name" title="document.json">
+          document.json <span
+            >{isDirty(document) ? "● Unsaved" : "· Unchanged"}</span
+          >
+        </div>
+        <span
+          class="status-badge"
+          data-state={document.analysis?.valid
+            ? "valid"
+            : document.analysis
+              ? "invalid"
+              : "pending"}
+          >{document.analysis?.valid
+            ? "Valid JSON"
+            : document.analysis
+              ? "Invalid JSON"
+              : "Checking"} · {document.analysis?.bytes ??
+            new TextEncoder().encode(document.source).length} bytes</span
         >
       </div>
-      <span
-        class="status-badge"
-        data-state={document.analysis?.valid
-          ? "valid"
-          : document.analysis
-            ? "invalid"
-            : "pending"}
-        >{document.analysis?.valid
-          ? "Valid JSON"
-          : document.analysis
-            ? "Invalid JSON"
-            : "Checking"} · {document.analysis?.bytes ??
-          new TextEncoder().encode(document.source).length} bytes</span
-      >
       <div class="header-actions">
         <button class="primary" onclick={() => fileInput.click()}
           >Open JSON</button
@@ -341,71 +347,80 @@
           }}
         />
         <button onclick={pasteDocument}>Paste</button>
-        <button
-          class="icon-button"
-          aria-label="Copy JSON"
-          title="Copy JSON"
-          onclick={copyJson}
-          ><svg viewBox="0 0 24 24" aria-hidden="true"
-            ><rect x="8" y="8" width="11" height="11" rx="2" /><path
-              d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"
-            /></svg
-          ></button
-        >
-        <button
-          class="icon-button"
-          aria-label="Download"
-          title="Download JSON"
-          onclick={download}
-          ><svg viewBox="0 0 24 24" aria-hidden="true"
-            ><path d="M12 3v12m-4-4 4 4 4-4M4 17v3h16v-3" /></svg
-          ></button
-        >
-        <button
-          onclick={() => {
-            if (
-              isDirty(document) &&
-              !window.confirm("Clear the unsaved document?")
-            )
-              return;
-            replaceDocument("");
-          }}>Clear</button
-        >
-        <button
-          bind:this={settingsTrigger}
-          aria-label="Open settings"
-          onclick={showSettings}>Settings</button
+        {#if hasContent}<Tooltip label="Copy JSON" align="end"
+            ><button
+              class="icon-button"
+              aria-label="Copy JSON"
+              onclick={copyJson}
+              ><svg viewBox="0 0 24 24" aria-hidden="true"
+                ><path
+                  d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"
+                /></svg
+              ></button
+            ></Tooltip
+          >
+          <Tooltip label="Download JSON" align="end"
+            ><button
+              class="icon-button"
+              aria-label="Download"
+              onclick={download}
+              ><svg viewBox="0 0 24 24" aria-hidden="true"
+                ><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></svg
+              ></button
+            ></Tooltip
+          >
+          <Tooltip label="Clear document" align="end"
+            ><button
+              class="icon-button danger-button"
+              aria-label="Clear document"
+              onclick={() => {
+                if (
+                  isDirty(document) &&
+                  !window.confirm("Clear the unsaved document?")
+                )
+                  return;
+                replaceDocument("");
+              }}
+              ><svg viewBox="0 0 24 24" aria-hidden="true"
+                ><path
+                  d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                /></svg
+              ></button
+            ></Tooltip
+          >{/if}
+        <Tooltip label="Open settings" align="end"
+          ><button
+            bind:this={settingsTrigger}
+            class="icon-button"
+            aria-label="Open settings"
+            onclick={showSettings}
+            ><svg viewBox="0 0 24 24" aria-hidden="true"
+              ><path
+                d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87c-0.12,0.21-0.08,0.47,0.12,0.61l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"
+              /></svg
+            ></button
+          ></Tooltip
         >
       </div>
     </header>
-    {#if loadController || busy}<div class="pending-actions">
-        {#if loadController}<button
-            onclick={() => {
-              loadId++;
-              loadController?.abort();
-              loadController = undefined;
-            }}>Cancel file load</button
-          >{/if}
-        {#if busy}<button
-            onclick={() => {
-              processId++;
-              cancelledRevision = document.revision;
-              processor.cancel();
-              busy = false;
-              document = { ...document, processing: false };
-            }}>Cancel</button
-          >{/if}
-      </div>{/if}
     {#if document.analysis?.mode !== "unavailable"}
       <EditorPanes
         bind:this={panes}
         state={document}
+        {hasContent}
         {view}
         editorTheme={preferences.editorTheme}
         font={preferences.font}
         onEdit={edit}
         onSelection={select}
         onHistory={history}
+        onCancel={() => {
+          processId++;
+          cancelledRevision = document.revision;
+          processor.cancel();
+          busy = false;
+          document = { ...document, processing: false };
+        }}
         onCopyPath={copyPath}
         onCopySubtree={copySubtree}
         onFormat={() => void runOperation("format")}
@@ -464,17 +479,26 @@
     aria-label="Settings"
     hidden={page !== "settings"}
   >
-    <header class="settings-header">
-      <button
-        class="icon-button"
-        aria-label="Back to workspace"
-        title="Back to workspace"
-        onclick={showWorkspace}
-        ><svg viewBox="0 0 24 24" aria-hidden="true"
-          ><path d="M20 12H4m0 0 7-7m-7 7 7 7" /></svg
-        ></button
+    <header class="settings-header workspace-header">
+      <Tooltip label="Back to workspace" align="start"
+        ><button
+          class="icon-button"
+          aria-label="Back to workspace"
+          onclick={showWorkspace}
+          ><svg viewBox="0 0 24 24" aria-hidden="true"
+            ><path
+              d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"
+            /></svg
+          ></button
+        ></Tooltip
       >
-      <span class="brand-mark" aria-hidden="true">{"{ }"}</span>
+      <div class="identity">
+        <img class="brand-mark" src="/logo.svg" alt="" />
+        <div>
+          <span class="settings-brand-name">JSON workspace</span>
+          <p>Private developer workspace</p>
+        </div>
+      </div>
     </header>
     <div class="settings-content">
       <h1 bind:this={settingsHeading} tabindex="-1">Settings</h1>
@@ -483,78 +507,77 @@
         automatically.
       </p>
       <section class="settings-card" aria-label="Workspace layout">
-        <h2>Workspace view</h2>
-        <p>Choose how you work with your document.</p>
-        <div class="settings-choices">
-          <button
-            aria-pressed={view === "split"}
-            onclick={() => chooseView("split")}>Split</button
-          >
-          <button
-            aria-pressed={view === "code"}
-            onclick={() => chooseView("code")}>Code</button
-          >
-          <button
-            aria-pressed={view === "tree"}
-            onclick={() => chooseView("tree")}>Tree</button
-          >
+        <div class="workspace-view-heading">
+          <div class="workspace-view-label">
+            <h2>Workspace view</h2>
+            <p>Choose how you work with your document.</p>
+          </div>
+          <SegmentedControl
+            label="Workspace view"
+            options={[
+              { value: "split", label: "Split" },
+              { value: "code", label: "Code" },
+              { value: "tree", label: "Tree" },
+            ]}
+            value={view}
+            onChange={(value) => chooseView(value as View)}
+          />
         </div>
       </section>
       <section class="settings-card" aria-label="Appearance preferences">
         <h2>Appearance</h2>
-        <label
-          >Mode <select
+        <div class="preference-field" role="presentation">
+          <span class="preference-label">Mode</span>
+          <SegmentedControl
+            label="Mode"
+            options={[
+              { value: "system", label: "System", icon: "computer" },
+              { value: "dark", label: "Dark", icon: "dark_mode" },
+              { value: "light", label: "Light", icon: "light_mode" },
+            ]}
             value={preferences.appearance}
-            onchange={(e) =>
+            className="mode-control"
+            onChange={(appearance) =>
               changePreference({
-                appearance: e.currentTarget.value as Preferences["appearance"],
+                appearance: appearance as Preferences["appearance"],
               })}
-          >
-            <option value="system">System</option><option value="dark"
-              >Dark</option
-            ><option value="light">Light</option>
-          </select></label
-        >
-        <label
-          >Application palette <select
-            value={preferences.palette}
-            onchange={(e) =>
-              changePreference({
-                palette: e.currentTarget.value as Preferences["palette"],
-              })}
-          >
-            <option value="ocean">Ocean</option><option value="graphite"
-              >Graphite</option
-            ><option value="forest">Forest</option>
-          </select></label
-        >
-        <label
-          >Code and Tree theme <select
-            value={preferences.editorTheme}
-            onchange={(e) =>
-              changePreference({
-                editorTheme: e.currentTarget
-                  .value as Preferences["editorTheme"],
-              })}
-          >
-            <option value="midnight">Midnight</option><option value="orchid"
-              >Orchid</option
-            ><option value="paper">Paper</option>
-          </select></label
-        >
-        <label
-          >Editor font <select
-            value={preferences.font}
-            onchange={(e) =>
-              changePreference({
-                font: e.currentTarget.value as Preferences["font"],
-              })}
-          >
-            <option value="system">System monospace</option><option
-              value="jetbrains">JetBrains Mono</option
-            ><option value="fantasque">Fantasque Sans Mono</option>
-          </select></label
-        >
+          />
+        </div>
+        <PreferenceDropdown
+          label="Application palette"
+          options={[
+            { value: "ocean", label: "Ocean" },
+            { value: "graphite", label: "Graphite" },
+            { value: "forest", label: "Forest" },
+          ]}
+          value={preferences.palette}
+          onChange={(palette) =>
+            changePreference({ palette: palette as Preferences["palette"] })}
+        />
+        <PreferenceDropdown
+          label="Code and Tree theme"
+          options={[
+            { value: "midnight", label: "Midnight" },
+            { value: "orchid", label: "Orchid" },
+            { value: "paper", label: "Paper" },
+          ]}
+          value={preferences.editorTheme}
+          onChange={(editorTheme) =>
+            changePreference({
+              editorTheme: editorTheme as Preferences["editorTheme"],
+            })}
+        />
+        <PreferenceDropdown
+          label="Editor font"
+          options={[
+            { value: "system", label: "System monospace" },
+            { value: "jetbrains", label: "JetBrains Mono" },
+            { value: "fantasque", label: "Fantasque Sans Mono" },
+          ]}
+          value={preferences.font}
+          onChange={(font) =>
+            changePreference({ font: font as Preferences["font"] })}
+        />
       </section>
     </div>
   </main>
