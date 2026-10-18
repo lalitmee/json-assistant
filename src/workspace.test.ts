@@ -45,6 +45,18 @@ describe("workspace controls", () => {
     expect(body).toContain("JSON Assistant");
     expect(body).not.toContain("JSON workspace");
   });
+  it("uses JSON Assistant as the browser tab title", () => {
+    const html = readFileSync(
+      new URL("../index.html", import.meta.url),
+      "utf8",
+    );
+    const readme = readFileSync(
+      new URL("../README.md", import.meta.url),
+      "utf8",
+    );
+    expect(html).toContain("<title>JSON Assistant</title>");
+    expect(readme).toMatch(/^# JSON Assistant/m);
+  });
   it("groups filename and status and uses the same logo asset in both headers", () => {
     const { body } = render(App);
     expect(body).toMatch(
