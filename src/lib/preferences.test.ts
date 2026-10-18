@@ -69,9 +69,7 @@ describe("presentation preferences", () => {
     expect(
       loadPreferences({
         getItem: (key: string) =>
-          key.endsWith(".v2")
-            ? '{"version":3,"appearance":"dark"}'
-            : null,
+          key.endsWith(".v2") ? '{"version":3,"appearance":"dark"}' : null,
       }),
     ).toEqual(defaultPreferences);
     expect(

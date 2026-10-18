@@ -379,6 +379,15 @@ describe("workspace controls", () => {
       /\[data-appearance="(?:system|light)"\]\[data-theme="cobalt2"\]/,
     );
   });
+  it("uses a readable error color for light variants", () => {
+    const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
+    expect(css).toMatch(
+      /\.app-shell\[data-appearance="light"\]:not\(\[data-theme="cobalt2"\]\)\s*\{[^}]*--error: #a61e4d/,
+    );
+    expect(css).toMatch(
+      /@media \(prefers-color-scheme: light\)[\s\S]*?\.app-shell\[data-appearance="system"\]:not\(\[data-theme="cobalt2"\]\)\s*\{[^}]*--error: #a61e4d/,
+    );
+  });
   it("keeps Cobalt2 primary buttons dark and hover borders clean", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
     expect(css).toMatch(
