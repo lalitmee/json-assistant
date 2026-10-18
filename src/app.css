@@ -608,6 +608,41 @@ h2 small {
 .divider:focus-visible::after {
   background: var(--accent);
 }
+.processing-overlay {
+  position: absolute;
+  z-index: 5;
+  inset: 64px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--surface) 38%, transparent);
+}
+.processing-overlay > span:last-child {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 0 4px 16px #0003;
+  font-weight: 600;
+}
+.processing-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: processing-spin 800ms linear infinite;
+}
+@keyframes processing-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 [aria-label="Document status"] {
   display: flex;
   align-items: center;
@@ -626,6 +661,7 @@ pre[data-testid="source"] {
   display: none;
 }
 .panes {
+  position: relative;
   --jse-theme: dark;
   --jse-background-color: #172330;
   --jse-text-color: #e4ecf5;
@@ -752,6 +788,9 @@ pre[data-testid="source"] {
 @media (prefers-reduced-motion: reduce) {
   .app-shell {
     transition: none;
+  }
+  .processing-spinner {
+    animation: none;
   }
 }
 @media (max-width: 700px) {
