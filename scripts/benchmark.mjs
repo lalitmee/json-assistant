@@ -8,8 +8,8 @@ const sizes = [100 * 1024, 1024 * 1024, 10 * 1024 * 1024, 100 * 1024 * 1024];
 const shapes = ["broad", "deep", "string"];
 const output = [];
 const server = spawn(
-  "npm",
-  ["run", "dev", "--", "--port", "5173", "--strictPort"],
+  "yarn",
+  ["dev", "--port", "5173", "--strictPort"],
   { stdio: "ignore" },
 );
 for (let attempt = 0; attempt < 100; attempt++) {
