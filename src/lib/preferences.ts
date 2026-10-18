@@ -10,7 +10,7 @@ export type Preferences = {
     | "solarized"
     | "vscode-dark-plus"
     | "github";
-  font: "system" | "jetbrains" | "fantasque";
+  font: "system" | "jetbrains" | "iosevka" | "cascadia" | "fira";
   animatedIndentGuides: boolean;
   view?: View;
 };
@@ -50,7 +50,9 @@ export function loadPreferences(
           ? value.appearance
           : defaultPreferences.appearance,
         theme: themes.includes(value.theme) ? value.theme : "cobalt2",
-        font: ["system", "jetbrains", "fantasque"].includes(value.font)
+        font: ["system", "jetbrains", "iosevka", "cascadia", "fira"].includes(
+          value.font,
+        )
           ? value.font
           : defaultPreferences.font,
         animatedIndentGuides: value.animatedIndentGuides === true,
@@ -68,7 +70,9 @@ export function loadPreferences(
         ? old.appearance
         : defaultPreferences.appearance,
       theme: "cobalt2",
-      font: ["system", "jetbrains", "fantasque"].includes(old.font)
+      font: ["system", "jetbrains", "iosevka", "cascadia", "fira"].includes(
+        old.font,
+      )
         ? old.font
         : defaultPreferences.font,
       animatedIndentGuides: false,

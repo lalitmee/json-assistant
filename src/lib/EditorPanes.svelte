@@ -442,10 +442,10 @@
       aria-live="polite"
       aria-atomic="true"
     >
-      <span class="processing-spinner" aria-hidden="true"></span>
-      <span
-        >{processingOperation === "format" ? "Formatting" : "Minifying"}</span
-      >
+      <span class="processing-status">
+        <span class="processing-spinner" aria-hidden="true"></span>
+        {processingOperation === "format" ? "Formatting" : "Minifying"}
+      </span>
     </div>
   {/if}
 </div>

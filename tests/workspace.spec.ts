@@ -21,6 +21,114 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/");
 });
 
+test("settings layout uses tighter spacing", async ({ page }) => {
+  await page.getByRole("button", { name: "Open settings" }).click();
+
+  const spacing = await page
+    .locator(".settings-content")
+    .evaluate((content) => {
+      const styles = getComputedStyle(content);
+      const card = content.querySelector(".settings-card")!;
+      const cardStyles = getComputedStyle(card);
+      return {
+        topMargin: styles.marginTop,
+        sectionGap: styles.rowGap,
+        cardPadding: cardStyles.paddingTop,
+        cardGap: cardStyles.rowGap,
+      };
+    });
+
+  expect(spacing).toEqual({
+    topMargin: "24px",
+    sectionGap: "12px",
+    cardPadding: "18px",
+    cardGap: "12px",
+  });
+});
+
+test("appearance controls align vertically with their labels", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: "Open settings" }).click();
+  const offsets = await page
+    .locator('[aria-label="Appearance preferences"]')
+    .locator(":scope > .preference-field, :scope > .preference-toggle")
+    .evaluateAll((rows) =>
+      rows.map((row) => {
+        const [label, control] = row.children;
+        const labelRect = label.getBoundingClientRect();
+        const controlRect = control.getBoundingClientRect();
+        return Math.abs(
+          labelRect.top +
+            labelRect.height / 2 -
+            (controlRect.top + controlRect.height / 2),
+        );
+      }),
+    );
+
+  expect(offsets.length).toBe(4);
+  expect(offsets.every((offset) => offset < 1)).toBe(true);
+});
+
+test("settings navigation skips animation for reduced motion", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.getByRole("button", { name: "Open settings" }).click();
+  await expect(page.getByRole("main", { name: "Settings" })).toBeVisible();
+  await expect(page.locator("html")).not.toHaveAttribute(
+    "data-navigation",
+    /.+/,
+  );
+});
+
+test("settings navigation animates forward and back", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  const supportsViewTransitions = await page.evaluate(
+    () => typeof document.startViewTransition === "function",
+  );
+
+  await page.getByRole("button", { name: "Open settings" }).click();
+  await expect(page.getByRole("main", { name: "Settings" })).toBeVisible();
+  if (supportsViewTransitions) {
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-navigation",
+      "forward",
+    );
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            getComputedStyle(
+              document.documentElement,
+              "::view-transition-new(root)",
+            ).animationName,
+        ),
+      )
+      .toBe("settings-enter-from-right");
+  }
+
+  await page.getByRole("button", { name: "Back to workspace" }).click();
+  await expect(page.locator("main.workspace")).toBeVisible();
+  if (supportsViewTransitions) {
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-navigation",
+      "back",
+    );
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            getComputedStyle(
+              document.documentElement,
+              "::view-transition-new(root)",
+            ).animationName,
+        ),
+      )
+      .toBe("settings-enter-from-left");
+  }
+});
+
 test("copy preserves exact dirty source when clipboard rejects", async ({
   page,
 }) => {
@@ -53,6 +161,108 @@ test("beforeunload warning tracks the dirty baseline", async ({ page }) => {
   expect(await wasPrevented()).toBe(true);
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   expect(await wasPrevented()).toBe(false);
+});
+
+test("editor font choices apply to both code and tree editors", async ({
+  page,
+}) => {
+  for (const [label, family] of [
+    ["JetBrains Mono", "JetBrains Mono Local"],
+    ["Iosevka Mono", "Iosevka Mono Local"],
+    ["Cascadia Code", "Cascadia Code Local"],
+    ["Fira Code", "Fira Code Local"],
+  ]) {
+    await page.getByRole("button", { name: "Open settings" }).click();
+    await page.getByRole("button", { name: "Editor font" }).click();
+    await page.getByRole("option", { name: label }).click();
+    await page.getByRole("button", { name: "Back to workspace" }).click();
+
+    for (const selector of [
+      '[aria-label="Source pane"] .cm-scroller',
+      ".tree-editor .jse-tree-mode",
+    ]) {
+      await expect(page.locator(selector)).toHaveCSS(
+        "font-family",
+        new RegExp(family),
+      );
+    }
+    expect(
+      await page.evaluate(async (name) => {
+        await document.fonts.load(`14px "${name}"`);
+        return document.fonts.check(`14px "${name}"`);
+      }, family),
+    ).toBe(true);
+  }
+});
+
+test("editor font preview follows the selected font", async ({ page }) => {
+  await page.getByRole("button", { name: "Open settings" }).click();
+  const preview = page.getByTestId("editor-font-preview");
+  const previewCode = preview.locator("code");
+  await expect(preview).toBeVisible();
+  await expect(
+    page.getByText("Preview · selected font and theme"),
+  ).toBeVisible();
+
+  for (const [label, family] of [
+    ["JetBrains Mono", "JetBrains Mono Local"],
+    ["Iosevka Mono", "Iosevka Mono Local"],
+    ["Cascadia Code", "Cascadia Code Local"],
+    ["Fira Code", "Fira Code Local"],
+    ["System default", "ui-monospace"],
+  ]) {
+    await page.getByRole("button", { name: "Editor font" }).click();
+    await page.getByRole("option", { name: label }).click();
+    await expect(previewCode).toHaveCSS("font-family", new RegExp(family));
+  }
+});
+
+test("editor preview follows the selected color theme", async ({ page }) => {
+  await page.getByRole("button", { name: "Open settings" }).click();
+  const preview = page.getByTestId("editor-font-preview");
+  await page
+    .getByRole("group", { name: "Mode" })
+    .getByRole("button", { name: "Dark" })
+    .click();
+  await expect(preview).toHaveCSS("background-color", "rgb(25, 53, 73)");
+
+  await page.getByRole("button", { name: "Color theme" }).click();
+  await page.getByRole("option", { name: "Catppuccin" }).click();
+  await expect(preview).toHaveCSS("background-color", "rgb(30, 30, 46)");
+  await expect(preview.locator(".preview-key").first()).toHaveCSS(
+    "color",
+    "rgb(137, 180, 250)",
+  );
+  await expect(preview.locator(".preview-value").first()).toHaveCSS(
+    "color",
+    "rgb(166, 227, 161)",
+  );
+});
+
+test("Cobalt2 preview colors strings green and other values pink", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: "Open settings" }).click();
+  await page.getByRole("button", { name: "Color theme" }).click();
+  await page.getByRole("option", { name: "Cobalt2" }).click();
+
+  const preview = page.getByTestId("editor-font-preview");
+  await expect(preview.locator(".preview-value").nth(0)).toHaveCSS(
+    "color",
+    "rgb(165, 255, 144)",
+  );
+  await expect(preview.locator(".preview-value").nth(2)).toHaveCSS(
+    "color",
+    "rgb(255, 98, 140)",
+  );
+  await expect(preview.locator(".preview-boolean")).toHaveCSS(
+    "color",
+    "rgb(255, 98, 140)",
+  );
+  await expect(preview.locator(".preview-null")).toHaveCSS(
+    "color",
+    "rgb(255, 98, 140)",
+  );
 });
 
 test("dirty file replacement asks for confirmation and cancellation retains source", async ({
@@ -418,6 +628,9 @@ test("formatting and minifying show a non-blocking editor overlay", async ({
   await page.getByRole("button", { name: "Format", exact: true }).click();
   await expect(overlay).toBeVisible();
   await expect(overlay).toHaveText("Formatting");
+  await expect(
+    overlay.locator(".processing-status .processing-spinner"),
+  ).toBeVisible();
   await expect(overlay).toHaveAttribute("aria-live", "polite");
   await expect(overlay).toHaveCSS("pointer-events", "none");
   await expect(
@@ -435,6 +648,9 @@ test("formatting and minifying show a non-blocking editor overlay", async ({
   await page.getByRole("button", { name: "Minify", exact: true }).click();
   await expect(overlay).toBeVisible();
   await expect(overlay).toHaveText("Minifying");
+  await expect(
+    overlay.locator(".processing-status .processing-spinner"),
+  ).toBeVisible();
   await source(page, '{"edited":true}');
   await expect(overlay).toBeVisible();
   await page.getByRole("button", { name: "Cancel processing" }).click();

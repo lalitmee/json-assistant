@@ -53,6 +53,14 @@
   --editor-delimiter: #668799;
   --editor-selection: #0050a4;
 }
+.app-shell[data-theme="cobalt2"] .editor-font-preview .preview-string {
+  color: #a5ff90;
+}
+.app-shell[data-theme="cobalt2"] .editor-font-preview .preview-number,
+.app-shell[data-theme="cobalt2"] .editor-font-preview .preview-boolean,
+.app-shell[data-theme="cobalt2"] .editor-font-preview .preview-null {
+  color: #ff628c;
+}
 .app-shell[data-theme="tokyo-night"] {
   color: #a9b1d6;
   background: #1a1b26;
@@ -442,8 +450,18 @@
   font-display: swap;
 }
 @font-face {
-  font-family: "Fantasque Sans Mono Local";
-  src: url("./assets/fonts/FantasqueSansMono-Regular.woff2") format("woff2");
+  font-family: "Iosevka Mono Local";
+  src: url("./assets/fonts/Iosevka-Regular.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Cascadia Code Local";
+  src: url("./assets/fonts/CascadiaCode-Regular.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Fira Code Local";
+  src: url("./assets/fonts/FiraCode-Regular.woff2") format("woff2");
   font-display: swap;
 }
 * {
@@ -629,6 +647,50 @@ nav button[aria-pressed="true"] {
   min-height: 100vh;
   padding: 0 12px 24px;
 }
+@keyframes settings-enter-from-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes settings-exit-to-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-25%);
+  }
+}
+@keyframes settings-enter-from-left {
+  from {
+    transform: translateX(-25%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes settings-exit-to-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+:root::view-transition-old(root) {
+  animation: 220ms ease both settings-exit-to-left;
+}
+:root::view-transition-new(root) {
+  animation: 220ms ease both settings-enter-from-right;
+}
+:root[data-navigation="back"]::view-transition-old(root) {
+  animation-name: settings-exit-to-right;
+}
+:root[data-navigation="back"]::view-transition-new(root) {
+  animation-name: settings-enter-from-left;
+}
 .settings-header {
   justify-content: flex-start;
   margin: 0 -12px;
@@ -640,9 +702,9 @@ nav button[aria-pressed="true"] {
 }
 .settings-content {
   max-width: 880px;
-  margin: 48px auto;
+  margin: 24px auto;
   display: grid;
-  gap: 20px;
+  gap: 12px;
 }
 .settings-content > h1 {
   font-size: 30px;
@@ -653,11 +715,33 @@ nav button[aria-pressed="true"] {
 }
 .settings-card {
   display: grid;
-  gap: 16px;
-  padding: 24px;
+  gap: 12px;
+  padding: 18px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
+}
+.editor-font-preview {
+  --editor-font: ui-monospace, monospace;
+  margin: 0;
+  overflow-x: auto;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--editor-background);
+  color: var(--editor-foreground);
+  font-family: var(--editor-font);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.editor-font-preview .preview-key {
+  color: var(--editor-key);
+}
+.editor-font-preview .preview-value {
+  color: var(--editor-value);
+}
+.editor-font-preview code {
+  font: inherit;
 }
 .segmented-control {
   position: relative;
@@ -998,9 +1082,10 @@ h2 small {
   pointer-events: none;
   background: color-mix(in srgb, var(--surface) 38%, transparent);
 }
-.processing-overlay > span:last-child {
+.processing-status {
   display: inline-flex;
   align-items: center;
+  gap: 10px;
   min-height: 42px;
   padding: 8px 14px;
   border: 1px solid var(--border);
@@ -1129,11 +1214,21 @@ pre[data-testid="source"] {
 .panes .jse-contents::-webkit-scrollbar-track {
   background: var(--editor-panel);
 }
-.panes[data-editor-font="jetbrains"] {
+.panes[data-editor-font="jetbrains"],
+.editor-font-preview[data-editor-font="jetbrains"] {
   --editor-font: "JetBrains Mono Local", monospace;
 }
-.panes[data-editor-font="fantasque"] {
-  --editor-font: "Fantasque Sans Mono Local", monospace;
+.panes[data-editor-font="iosevka"],
+.editor-font-preview[data-editor-font="iosevka"] {
+  --editor-font: "Iosevka Mono Local", monospace;
+}
+.panes[data-editor-font="cascadia"],
+.editor-font-preview[data-editor-font="cascadia"] {
+  --editor-font: "Cascadia Code Local", monospace;
+}
+.panes[data-editor-font="fira"],
+.editor-font-preview[data-editor-font="fira"] {
+  --editor-font: "Fira Code Local", monospace;
 }
 .panes .jse-expand {
   color: var(--jse-delimiter-color);
@@ -1170,6 +1265,10 @@ pre[data-testid="source"] {
     color 180ms ease;
 }
 @media (prefers-reduced-motion: reduce) {
+  :root::view-transition-old(root),
+  :root::view-transition-new(root) {
+    animation: none;
+  }
   .app-shell {
     transition: none;
   }
@@ -1184,7 +1283,7 @@ pre[data-testid="source"] {
     gap: 6px;
   }
   .settings-content {
-    margin: 28px auto;
+    margin: 24px auto;
   }
   .workspace {
     padding: 0 10px 10px;

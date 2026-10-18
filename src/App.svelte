@@ -44,14 +44,29 @@
       /* storage blocked */
     }
   }
+  async function navigatePage(next: "workspace" | "settings") {
+    if (
+      typeof window.document.startViewTransition === "function" &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      window.document.documentElement.dataset.navigation =
+        next === "settings" ? "forward" : "back";
+      const transition = window.document.startViewTransition(async () => {
+        page = next;
+        await tick();
+      });
+      await transition.updateCallbackDone;
+    } else {
+      page = next;
+      await tick();
+    }
+  }
   async function showSettings() {
-    page = "settings";
-    await tick();
+    await navigatePage("settings");
     settingsHeading.focus();
   }
   async function showWorkspace() {
-    page = "workspace";
-    await tick();
+    await navigatePage("workspace");
     settingsTrigger.focus();
   }
   let panes: InstanceType<typeof EditorPanes>;
@@ -572,14 +587,34 @@
         <PreferenceDropdown
           label="Editor font"
           options={[
-            { value: "system", label: "System monospace" },
+            { value: "system", label: "System default" },
             { value: "jetbrains", label: "JetBrains Mono" },
-            { value: "fantasque", label: "Fantasque Sans Mono" },
+            { value: "iosevka", label: "Iosevka Mono" },
+            { value: "cascadia", label: "Cascadia Code" },
+            { value: "fira", label: "Fira Code" },
           ]}
           value={preferences.font}
           onChange={(font) =>
             changePreference({ font: font as Preferences["font"] })}
         />
+        <p class="editor-preview-label">Preview · selected font and theme</p>
+        <pre
+          class="editor-font-preview"
+          data-testid="editor-font-preview"
+          data-editor-font={preferences.font}
+          aria-label="Editor font preview"><code
+            >{"{"}{"\n  "}<span class="preview-key">"name"</span>: <span
+              class="preview-value preview-string">"JSON Assistant"</span
+            >,{"\n  "}<span class="preview-key">"symbols"</span>: <span
+              class="preview-value preview-string">"=> !== ->"</span
+            >,{"\n  "}<span class="preview-key">"count"</span>: <span
+              class="preview-value preview-number">123</span
+            >,{"\n  "}<span class="preview-key">"enabled"</span>: <span
+              class="preview-value preview-boolean">true</span
+            >,{"\n  "}<span class="preview-key">"optional"</span>: <span
+              class="preview-value preview-null">null</span
+            >{"\n}"}</code
+          ></pre>
         <button
           type="button"
           class="preference-toggle"

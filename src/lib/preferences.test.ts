@@ -57,6 +57,14 @@ describe("presentation preferences", () => {
     expect(loadPreferences(unknown).theme).toBe("cobalt2");
   });
 
+  it("loads each packaged editor font choice", () => {
+    for (const font of ["system", "jetbrains", "iosevka", "cascadia", "fira"]) {
+      expect(
+        loadPreferences(stored(JSON.stringify({ version: 2, font }))).font,
+      ).toBe(font);
+    }
+  });
+
   it("migrates split legacy themes to Cobalt2 and retains compatible preferences", () => {
     const legacy = {
       getItem: (key: string) =>
