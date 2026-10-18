@@ -38,7 +38,7 @@ Processing is client-side; serving the site still requires normal requests for t
 
 - [Design specification](docs/superpowers/specs/2026-10-17-json-workspace-design.md)
 - [Settings and themes](docs/superpowers/specs/2026-10-18-settings-and-themes-design.md)
-- [Release notes](docs/releases/0.1.0.md)
+- [Release notes](docs/releases/0.2.0.md)
 - [Research](docs/research/2026-10-17-json-tools.md)
 - [Roadmap](docs/roadmap.md)
 
