@@ -16,6 +16,22 @@ describe("presentation preferences", () => {
     expect(defaultPreferences.theme).toBe("cobalt2");
   });
 
+  it("persists the animation setting and ignores retired rainbow settings", () => {
+    const preferences = {
+      ...defaultPreferences,
+      animatedIndentGuides: true,
+    };
+    let saved = "";
+    savePreferences({ setItem: (_key, value) => (saved = value) }, preferences);
+    expect(loadPreferences(stored(saved))).toEqual(preferences);
+    expect(loadPreferences(stored('{"version":2}'))).toEqual(
+      defaultPreferences,
+    );
+    expect(
+      loadPreferences(stored('{"version":2,"rainbowIndentGuides":true}')),
+    ).toEqual(defaultPreferences);
+  });
+
   it("loads every supported v2 theme and rejects unknown themes", () => {
     for (const theme of [
       "cobalt2",
@@ -120,6 +136,7 @@ describe("presentation preferences", () => {
       appearance: "dark",
       theme: "cobalt2",
       font: "system",
+      animatedIndentGuides: false,
     });
     expect(() =>
       savePreferences(

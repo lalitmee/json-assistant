@@ -29,6 +29,7 @@
   export let view: View;
   export let theme: Preferences["theme"];
   export let font: Preferences["font"];
+  export let animatedIndentGuides: boolean;
   export let onEdit: (snapshot: Snapshot) => void;
   export let onSelection: (selection: Selection) => void;
   export let onHistory: (direction: "undo" | "redo") => void;
@@ -241,6 +242,7 @@
   data-view={view}
   data-theme={theme}
   data-editor-font={font}
+  data-animated-indent-guides={animatedIndentGuides}
   style={`--split: ${split}%`}
 >
   {#if view === "split"}
@@ -254,6 +256,7 @@
       aria-valuemin="25"
       aria-valuemax="75"
       tabindex="0"
+      ondblclick={() => (split = 50)}
       onkeydown={dividerKey}
       onpointerdown={(event) =>
         event.currentTarget.setPointerCapture(event.pointerId)}
@@ -262,7 +265,7 @@
   {/if}
   <section aria-label="Source pane" hidden={view === "tree"}>
     <div class="pane-header">
-      <h2>Code <small>Source</small></h2>
+      <h2>Code</h2>
       <div class="pane-actions" data-processing={state.processing}>
         <span class="cancel-slot">
           {#if state.processing}<button
@@ -270,7 +273,6 @@
               onclick={onCancel}>Cancel</button
             >{:else}<span aria-hidden="true"></span>{/if}
         </span>
-        <span class="history-label">Document</span>
         <Tooltip label="Undo document change (Ctrl/⌘+Z)" align="end"
           ><button
             class="icon-button"
@@ -324,7 +326,7 @@
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
   <section aria-label="Tree pane" tabindex="0" hidden={view === "code"}>
     <div class="pane-header">
-      <h2>Tree <small>Structure</small></h2>
+      <h2>Tree</h2>
       <div class="pane-actions">
         {#if hasContent && !unavailable}
           <Tooltip label="Expand all" align="end"

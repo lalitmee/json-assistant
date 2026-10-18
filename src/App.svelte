@@ -411,6 +411,7 @@
         {view}
         theme={preferences.theme}
         font={preferences.font}
+        animatedIndentGuides={preferences.animatedIndentGuides}
         onEdit={edit}
         onSelection={select}
         onHistory={history}
@@ -569,6 +570,22 @@
           onChange={(font) =>
             changePreference({ font: font as Preferences["font"] })}
         />
+        <button
+          type="button"
+          class="preference-toggle"
+          role="switch"
+          aria-label="Animated indentation guides"
+          aria-checked={preferences.animatedIndentGuides}
+          onclick={() =>
+            changePreference({
+              animatedIndentGuides: !preferences.animatedIndentGuides,
+            })}
+        >
+          <span>Animated indentation guides</span>
+          <span class="toggle-track" aria-hidden="true"
+            ><span class="toggle-thumb"></span></span
+          >
+        </button>
       </section>
     </div>
   </main>

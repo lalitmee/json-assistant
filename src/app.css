@@ -367,6 +367,13 @@
   --jse-value-color-boolean: var(--editor-key);
   --jse-value-color-null: var(--editor-delimiter);
 }
+.panes[data-theme="cobalt2"] {
+  --jse-value-color-string: #a5ff90;
+  --jse-value-color-url: #a5ff90;
+  --jse-value-color-number: #ff628c;
+  --jse-value-color-boolean: #ff628c;
+  --jse-value-color-null: #ff628c;
+}
 .app-shell[data-appearance="light"] .panes[data-theme] {
   --jse-theme: light;
 }
@@ -713,6 +720,69 @@ nav button[aria-pressed="true"] {
   justify-content: space-between;
   gap: 20px;
 }
+.preference-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--editor-foreground);
+  text-align: left;
+  cursor: pointer;
+}
+.toggle-track {
+  position: relative;
+  flex: 0 0 52px;
+  height: 30px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--raised);
+  box-shadow: inset 0 1px 3px #0003;
+  transition:
+    background-color 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease;
+}
+.toggle-thumb {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #fff9;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #fff, #dfe5f5);
+  box-shadow: 0 2px 5px #0005;
+  transition:
+    transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 220ms ease;
+}
+.preference-toggle[aria-checked="true"] .toggle-track {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow:
+    inset 0 1px 3px #0002,
+    0 0 12px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.preference-toggle[aria-checked="true"] .toggle-thumb {
+  transform: translateX(22px);
+  box-shadow:
+    0 2px 7px #0005,
+    0 0 8px #fff7;
+}
+.preference-toggle.preference-toggle:hover:not(:disabled) {
+  border-color: transparent;
+  background: transparent;
+}
+.preference-toggle:focus-visible {
+  outline: none;
+}
+.preference-toggle:focus-visible .toggle-track {
+  outline: 2px solid var(--editor-key);
+  outline-offset: 3px;
+}
 .preference-dropdown {
   position: relative;
   width: min(100%, 260px);
@@ -762,13 +832,11 @@ nav button[aria-pressed="true"] {
 }
 @media (prefers-reduced-motion: reduce) {
   .segment-indicator,
-  button:where(:not(.jse-main button)) {
+  button:where(:not(.jse-main button)),
+  .toggle-track,
+  .toggle-thumb {
     transition: none;
   }
-}
-.history-label {
-  font-size: 11px;
-  color: var(--muted);
 }
 .panes {
   flex: 1;
@@ -778,6 +846,30 @@ nav button[aria-pressed="true"] {
   grid-template-columns: minmax(0, var(--split)) 12px minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
   gap: 0;
+}
+.panes .cm-editor {
+  --indent-marker-bg-color: color-mix(
+    in srgb,
+    var(--editor-key) 42%,
+    transparent
+  );
+  --indent-marker-active-bg-color: var(--editor-key);
+}
+.panes[data-animated-indent-guides="true"] .cm-indent-markers::before {
+  animation: indentation-guide-pulse 2.4s ease-in-out infinite alternate;
+}
+@keyframes indentation-guide-pulse {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panes[data-animated-indent-guides="true"] .cm-indent-markers::before {
+    animation: none;
+  }
 }
 .panes [aria-label="Source pane"] {
   grid-column: 1;
@@ -829,9 +921,6 @@ h2 small {
 .pane-actions {
   flex-wrap: wrap;
   gap: 10px;
-}
-.pane-actions .history-label {
-  margin-right: 2px;
 }
 .cancel-slot,
 .cancel-slot > span {
@@ -916,6 +1005,14 @@ pre[data-testid="source"] {
 .panes {
   --jse-main-border: none;
   --jse-modal-background: var(--jse-panel-background);
+  --jse-search-match-color: color-mix(
+    in srgb,
+    var(--editor-selection) 72%,
+    var(--editor-background)
+  );
+  --jse-search-match-active-color: var(--editor-selection);
+  --jse-search-match-outline: 1px solid var(--editor-key);
+  --jse-search-match-active-outline: 2px solid var(--editor-key);
   --jse-hover-background-color: color-mix(
     in srgb,
     var(--jse-background-color) 58%,
@@ -962,14 +1059,35 @@ pre[data-testid="source"] {
   color: var(--jse-text-color);
   background: var(--jse-hover-background-color);
 }
+.panes .cm-lineNumbers .cm-gutterElement {
+  padding: 0 3px;
+}
 .panes .cm-foldGutter .cm-gutterElement {
-  min-width: 24px;
+  min-width: 16px;
   color: var(--jse-delimiter-color);
   font-size: 18px;
   line-height: 1.4;
 }
 .panes .cm-foldGutter .cm-gutterElement span {
   font-size: inherit;
+}
+.panes .cm-scroller,
+.panes .jse-contents {
+  scrollbar-color: var(--editor-selection) var(--editor-panel);
+}
+.panes .cm-scroller::-webkit-scrollbar-thumb,
+.panes .jse-contents::-webkit-scrollbar-thumb {
+  border: 2px solid var(--editor-panel);
+  border-radius: 8px;
+  background: var(--editor-selection);
+}
+.panes .cm-scroller::-webkit-scrollbar-thumb:hover,
+.panes .jse-contents::-webkit-scrollbar-thumb:hover {
+  background: var(--editor-key);
+}
+.panes .cm-scroller::-webkit-scrollbar-track,
+.panes .jse-contents::-webkit-scrollbar-track {
+  background: var(--editor-panel);
 }
 .panes[data-editor-font="jetbrains"] {
   --editor-font: "JetBrains Mono Local", monospace;

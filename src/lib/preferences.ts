@@ -11,6 +11,7 @@ export type Preferences = {
     | "vscode-dark-plus"
     | "github";
   font: "system" | "jetbrains" | "fantasque";
+  animatedIndentGuides: boolean;
   view?: View;
 };
 
@@ -18,6 +19,7 @@ export const defaultPreferences: Preferences = {
   appearance: "system",
   theme: "cobalt2",
   font: "system",
+  animatedIndentGuides: false,
 };
 
 const key = "json-workspace.preferences.v2";
@@ -51,6 +53,7 @@ export function loadPreferences(
         font: ["system", "jetbrains", "fantasque"].includes(value.font)
           ? value.font
           : defaultPreferences.font,
+        animatedIndentGuides: value.animatedIndentGuides === true,
         ...(["split", "code", "tree"].includes(value.view)
           ? { view: value.view }
           : {}),
@@ -68,6 +71,7 @@ export function loadPreferences(
       font: ["system", "jetbrains", "fantasque"].includes(old.font)
         ? old.font
         : defaultPreferences.font,
+      animatedIndentGuides: false,
       ...(["split", "code", "tree"].includes(old.view)
         ? { view: old.view }
         : {}),
@@ -81,7 +85,7 @@ export function savePreferences(
   storage: Pick<Storage, "setItem">,
   preferences: Preferences,
 ): void {
-  const { appearance, theme, font, view } = preferences;
+  const { appearance, theme, font, animatedIndentGuides, view } = preferences;
   try {
     storage.setItem(
       key,
@@ -90,6 +94,7 @@ export function savePreferences(
         appearance,
         theme,
         font,
+        animatedIndentGuides,
         ...(view ? { view } : {}),
       }),
     );

@@ -11,6 +11,12 @@ describe("workspace controls", () => {
     );
     expect(body).not.toContain('class="history-strip"');
   });
+  it("removes redundant pane subtitles and the history label", () => {
+    const { body } = render(App);
+    expect(body).toContain("<h2>Code</h2>");
+    expect(body).toContain("<h2>Tree</h2>");
+    expect(body).not.toContain('class="history-label"');
+  });
   it("puts a validity badge inside the app header and labels icon actions", () => {
     const { body } = render(App);
     expect(body).toMatch(
@@ -378,6 +384,64 @@ describe("workspace controls", () => {
     expect(css).not.toMatch(
       /\[data-appearance="(?:system|light)"\]\[data-theme="cobalt2"\]/,
     );
+  });
+  it("maps every Cobalt2 JSON value to its syntax color", () => {
+    const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
+    const cobalt = css.match(
+      /\.panes\[data-theme="cobalt2"\]\s*\{([^}]*)\}/,
+    )?.[1];
+    expect(cobalt).toContain("--jse-value-color-string: #a5ff90");
+    expect(cobalt).toContain("--jse-value-color-url: #a5ff90");
+    expect(cobalt).toContain("--jse-value-color-number: #ff628c");
+    expect(cobalt).toContain("--jse-value-color-boolean: #ff628c");
+    expect(cobalt).toContain("--jse-value-color-null: #ff628c");
+  });
+  it("themes Tree search highlights from the selected palette", () => {
+    const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
+    expect(css).toMatch(
+      /--jse-search-match-color:\s*color-mix\([\s\S]*?var\(--editor-selection\)[\s\S]*?\);/,
+    );
+    expect(css).toContain(
+      "--jse-search-match-active-color: var(--editor-selection)",
+    );
+    expect(css).toContain(
+      "--jse-search-match-outline: 1px solid var(--editor-key)",
+    );
+  });
+  it("keeps editor gutters compact and scrollbars theme-aware", () => {
+    const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
+    expect(css).toMatch(
+      /\.panes \.cm-foldGutter \.cm-gutterElement\s*\{[^}]*min-width: 16px/,
+    );
+    expect(css).toMatch(
+      /\.panes \.cm-lineNumbers \.cm-gutterElement\s*\{[^}]*padding: 0 3px/,
+    );
+    expect(css).toMatch(
+      /\.panes \.cm-scroller,\s*\.panes \.jse-contents\s*\{[^}]*scrollbar-color: var\(--editor-selection\) var\(--editor-panel\)/,
+    );
+    expect(css).toMatch(
+      /\.panes \.cm-scroller::-webkit-scrollbar-thumb,\s*\.panes \.jse-contents::-webkit-scrollbar-thumb/,
+    );
+  });
+  it("offers indentation guide controls and an equal-split divider gesture", () => {
+    const app = readFileSync(new URL("./App.svelte", import.meta.url), "utf8");
+    const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
+    const panes = readFileSync(
+      new URL("./lib/EditorPanes.svelte", import.meta.url),
+      "utf8",
+    );
+    expect(app).toContain('label="Animated indentation guides"');
+    expect(app).not.toContain("Rainbow indentation guides");
+    expect(app).toContain('role="switch"');
+    expect(app).toContain('class="toggle-thumb"');
+    expect(app).not.toContain('type="checkbox"');
+    expect(css).toContain('.preference-toggle[aria-checked="true"]');
+    expect(css).toContain(".toggle-thumb");
+    expect(panes).toContain("ondblclick={() => (split = 50)}");
+    expect(css).toContain("--indent-marker-bg-color: color-mix(");
+    expect(css).toContain("@keyframes indentation-guide-pulse");
+    expect(css).toContain("prefers-reduced-motion: reduce");
+    expect(css).not.toContain("data-rainbow-indent-guides");
   });
   it("uses a readable error color for light variants", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
