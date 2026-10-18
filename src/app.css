@@ -496,7 +496,7 @@ button:where(:not(.jse-main button)):disabled {
   flex-direction: column;
   gap: 10px;
   width: 100%;
-  padding: 12px;
+  padding: 0 12px 12px;
   overflow: hidden;
 }
 .workspace-header,
@@ -512,7 +512,7 @@ button:where(:not(.jse-main button)):disabled {
   position: sticky;
   top: 0;
   z-index: 10;
-  margin: -12px -12px 0;
+  margin: 0 -12px;
   padding: 8px 12px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -1017,10 +1017,10 @@ pre[data-testid="source"] {
     margin: 28px auto;
   }
   .workspace {
-    padding: 10px;
+    padding: 0 10px 10px;
   }
   .workspace-header {
-    margin: -10px -10px 0;
+    margin: 0 -10px;
     padding: 8px 10px;
   }
   .workspace-header {

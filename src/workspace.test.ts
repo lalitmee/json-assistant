@@ -135,6 +135,17 @@ describe("workspace controls", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
     expect(css).toMatch(/\.workspace-header\s*\{[^}]*padding:\s*8px 12px/);
   });
+  it("places the workspace header flush with the viewport top", () => {
+    const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
+    expect(css).toMatch(/\.workspace\s*\{[^}]*padding:\s*0 12px 12px/);
+    expect(css).toMatch(/\.workspace-header\s*\{[^}]*margin:\s*0 -12px/);
+    expect(css).toMatch(
+      /@media \(max-width: 700px\)[\s\S]*?\.workspace\s*\{[^}]*padding:\s*0 10px 10px/,
+    );
+    expect(css).toMatch(
+      /@media \(max-width: 700px\)[\s\S]*?\.workspace-header\s*\{[^}]*margin:\s*0 -10px/,
+    );
+  });
   it("keeps the workspace view label and narrower toggle on one row", () => {
     const { body } = render(App);
     expect(body).toMatch(
