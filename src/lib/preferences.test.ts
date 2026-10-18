@@ -6,14 +6,73 @@ import {
   savePreferences,
 } from "./preferences";
 
-const stored = (value: string | null) => ({ getItem: () => value });
+const stored = (value: string | null) => ({
+  getItem: (key: string) =>
+    key.endsWith(".v1") ? value : key.endsWith(".v2") ? value : null,
+});
 
 describe("presentation preferences", () => {
+  it("defaults to Cobalt2", () => {
+    expect(defaultPreferences.theme).toBe("cobalt2");
+  });
+
+  it("loads every supported v2 theme and rejects unknown themes", () => {
+    for (const theme of [
+      "cobalt2",
+      "tokyo-night",
+      "catppuccin",
+      "rose-pine",
+      "solarized",
+      "vscode-dark-plus",
+      "github",
+    ]) {
+      const storage = {
+        getItem: (key: string) =>
+          key.endsWith(".v2") ? JSON.stringify({ version: 2, theme }) : null,
+      };
+      expect(loadPreferences(storage).theme).toBe(theme);
+    }
+    const unknown = {
+      getItem: (key: string) =>
+        key.endsWith(".v2")
+          ? JSON.stringify({ version: 2, theme: "unknown" })
+          : null,
+    };
+    expect(loadPreferences(unknown).theme).toBe("cobalt2");
+  });
+
+  it("migrates split legacy themes to Cobalt2 and retains compatible preferences", () => {
+    const legacy = {
+      getItem: (key: string) =>
+        key.endsWith(".v1")
+          ? JSON.stringify({
+              version: 1,
+              appearance: "light",
+              palette: "forest",
+              editorTheme: "paper",
+              font: "jetbrains",
+              view: "tree",
+            })
+          : null,
+    };
+    expect(loadPreferences(legacy)).toEqual({
+      ...defaultPreferences,
+      appearance: "light",
+      font: "jetbrains",
+      view: "tree",
+    });
+  });
+
   it("defaults for missing, malformed, obsolete or blocked storage", () => {
     expect(loadPreferences(stored(null))).toEqual(defaultPreferences);
     expect(loadPreferences(stored("not json"))).toEqual(defaultPreferences);
     expect(
-      loadPreferences(stored('{"version":2,"appearance":"dark"}')),
+      loadPreferences({
+        getItem: (key: string) =>
+          key.endsWith(".v2")
+            ? '{"version":3,"appearance":"dark"}'
+            : null,
+      }),
     ).toEqual(defaultPreferences);
     expect(
       loadPreferences({
@@ -29,10 +88,9 @@ describe("presentation preferences", () => {
       loadPreferences(
         stored(
           JSON.stringify({
-            version: 1,
+            version: 2,
             appearance: "light",
-            palette: "bad",
-            editorTheme: "paper",
+            theme: "bad",
             font: "bad",
             view: "tree",
             source: "secret",
@@ -42,26 +100,27 @@ describe("presentation preferences", () => {
     ).toEqual({
       ...defaultPreferences,
       appearance: "light",
-      editorTheme: "paper",
       view: "tree",
     });
   });
 
-  it("saves only UI choices and survives unavailable storage", () => {
+  it("saves only UI choices to v2 and survives unavailable storage", () => {
     let saved = "";
+    let savedKey = "";
     savePreferences(
       {
-        setItem: (_key, value) => {
+        setItem: (key, value) => {
+          savedKey = key;
           saved = value;
         },
       },
       { ...defaultPreferences, appearance: "dark", source: "private" } as any,
     );
+    expect(savedKey).toBe("json-workspace.preferences.v2");
     expect(JSON.parse(saved)).toEqual({
-      version: 1,
+      version: 2,
       appearance: "dark",
-      palette: "ocean",
-      editorTheme: "midnight",
+      theme: "cobalt2",
       font: "system",
     });
     expect(() =>

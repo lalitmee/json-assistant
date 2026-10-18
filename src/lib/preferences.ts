@@ -2,20 +2,35 @@ import type { View } from "./document";
 
 export type Preferences = {
   appearance: "system" | "dark" | "light";
-  palette: "ocean" | "graphite" | "forest";
-  editorTheme: "midnight" | "orchid" | "paper";
+  theme:
+    | "cobalt2"
+    | "tokyo-night"
+    | "catppuccin"
+    | "rose-pine"
+    | "solarized"
+    | "vscode-dark-plus"
+    | "github";
   font: "system" | "jetbrains" | "fantasque";
   view?: View;
 };
 
 export const defaultPreferences: Preferences = {
   appearance: "system",
-  palette: "ocean",
-  editorTheme: "midnight",
+  theme: "cobalt2",
   font: "system",
 };
 
-const key = "json-workspace.preferences.v1";
+const key = "json-workspace.preferences.v2";
+const legacyKey = "json-workspace.preferences.v1";
+const themes = [
+  "cobalt2",
+  "tokyo-night",
+  "catppuccin",
+  "rose-pine",
+  "solarized",
+  "vscode-dark-plus",
+  "github",
+] as const;
 
 export function resolveView(preferences: Preferences, width: number): View {
   return preferences.view ?? (width >= 900 ? "split" : "code");
@@ -25,25 +40,36 @@ export function loadPreferences(
   storage: Pick<Storage, "getItem">,
 ): Preferences {
   try {
-    const raw = storage.getItem(key);
-    const value = raw ? JSON.parse(raw) : null;
-    if (!value || value.version !== 1 || typeof value !== "object")
+    const current = storage.getItem(key);
+    const value = current ? JSON.parse(current) : null;
+    if (value && value.version === 2 && typeof value === "object") {
+      return {
+        appearance: ["system", "dark", "light"].includes(value.appearance)
+          ? value.appearance
+          : defaultPreferences.appearance,
+        theme: themes.includes(value.theme) ? value.theme : "cobalt2",
+        font: ["system", "jetbrains", "fantasque"].includes(value.font)
+          ? value.font
+          : defaultPreferences.font,
+        ...(["split", "code", "tree"].includes(value.view)
+          ? { view: value.view }
+          : {}),
+      };
+    }
+    const legacy = storage.getItem(legacyKey);
+    const old = legacy ? JSON.parse(legacy) : null;
+    if (!old || old.version !== 1 || typeof old !== "object")
       return { ...defaultPreferences };
     return {
-      appearance: ["system", "dark", "light"].includes(value.appearance)
-        ? value.appearance
+      appearance: ["system", "dark", "light"].includes(old.appearance)
+        ? old.appearance
         : defaultPreferences.appearance,
-      palette: ["ocean", "graphite", "forest"].includes(value.palette)
-        ? value.palette
-        : defaultPreferences.palette,
-      editorTheme: ["midnight", "orchid", "paper"].includes(value.editorTheme)
-        ? value.editorTheme
-        : defaultPreferences.editorTheme,
-      font: ["system", "jetbrains", "fantasque"].includes(value.font)
-        ? value.font
+      theme: "cobalt2",
+      font: ["system", "jetbrains", "fantasque"].includes(old.font)
+        ? old.font
         : defaultPreferences.font,
-      ...(["split", "code", "tree"].includes(value.view)
-        ? { view: value.view }
+      ...(["split", "code", "tree"].includes(old.view)
+        ? { view: old.view }
         : {}),
     };
   } catch {
@@ -55,15 +81,14 @@ export function savePreferences(
   storage: Pick<Storage, "setItem">,
   preferences: Preferences,
 ): void {
-  const { appearance, palette, editorTheme, font, view } = preferences;
+  const { appearance, theme, font, view } = preferences;
   try {
     storage.setItem(
       key,
       JSON.stringify({
-        version: 1,
+        version: 2,
         appearance,
-        palette,
-        editorTheme,
+        theme,
         font,
         ...(view ? { view } : {}),
       }),

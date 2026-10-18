@@ -29,11 +29,9 @@ describe("workspace controls", () => {
     expect(body).toContain('aria-label="Source pane"');
     expect(body).toContain('aria-label="Back to workspace"');
   });
-  it("exposes independent presentation choices without changing document bytes", () => {
+  it("keeps document bytes independent of presentation preferences", () => {
     const { body } = render(App);
     expect(body).toContain('data-appearance="system"');
-    expect(body).toContain('data-palette="ocean"');
-    expect(body).toContain('data-editor-theme="midnight"');
     expect(body).toContain('data-editor-font="system"');
     expect(body).toContain('<pre data-testid="source">{}</pre>');
     expect(body).toContain('data-testid="revision" hidden="">0');
@@ -295,6 +293,39 @@ describe("workspace controls", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
     expect(css).toMatch(
       /--jse-modal-background:\s*var\(--jse-panel-background\)/,
+    );
+  });
+  it("offers Cobalt2 for both the app and Code/Tree themes", () => {
+    const app = readFileSync(new URL("./App.svelte", import.meta.url), "utf8");
+    expect(app.match(/\{ value: "cobalt2", label: "Cobalt2" \}/g)).toHaveLength(
+      2,
+    );
+  });
+  it("uses the Cobalt2 palette across the app and JSON editor", () => {
+    const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
+    expect(css).toMatch(
+      /\.app-shell\[data-palette="cobalt2"\]\s*\{[^}]*background: #193549/,
+    );
+    const theme = css.match(
+      /\.panes\[data-editor-theme="cobalt2"\]\s*\{([^}]*)\}/,
+    )?.[1];
+    expect(theme).toMatch(/--jse-key-color: #ffc600/);
+    expect(theme).toMatch(/--jse-value-color-string: #88ff88/);
+    expect(theme).toMatch(/--jse-value-color-url: #88ff88/);
+    expect(theme).toMatch(/--jse-value-color-number: #ff628c/);
+    expect(theme).toMatch(/--jse-value-color-boolean: #ff628c/);
+    expect(theme).toMatch(/--jse-value-color-null: #ff628c/);
+  });
+  it("keeps Cobalt2 primary buttons dark and hover borders clean", () => {
+    const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
+    expect(css).toMatch(
+      /\.app-shell\[data-palette="cobalt2"\]\s*\{[^}]*--primary: #0050a4/,
+    );
+    expect(css).toMatch(
+      /button:where\(:not\(\.jse-main button\)\)\s*\{[^}]*background-clip: padding-box/,
+    );
+    expect(css).toMatch(
+      /button:where\(:not\(\.jse-main button\)\)\s*\{[^}]*transition:/,
     );
   });
   it("tightens only the Tree root disclosure and count spacing", () => {
