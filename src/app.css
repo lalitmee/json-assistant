@@ -490,8 +490,8 @@ button:where(:not(.jse-main button)):disabled {
   place-items: center;
 }
 .icon-button svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   fill: currentColor;
 }
 .danger-button {
@@ -522,7 +522,7 @@ button:where(:not(.jse-main button)):disabled {
   top: 0;
   z-index: 10;
   margin: 0 -12px;
-  padding: 8px 12px;
+  padding: 6px 12px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
@@ -572,8 +572,8 @@ button:where(:not(.jse-main button)):disabled {
 }
 .brand-mark {
   display: block;
-  height: 38px;
-  width: 38px;
+  height: 34px;
+  width: 34px;
   flex: none;
 }
 h1,
@@ -592,6 +592,9 @@ h2 small {
   color: var(--muted);
   font-size: 12px;
   font-weight: 400;
+}
+.identity p {
+  line-height: 1.2;
 }
 .document-name {
   overflow: hidden;
@@ -841,7 +844,6 @@ nav button[aria-pressed="true"] {
 .panes {
   flex: 1;
   min-height: 0;
-  margin-top: 10px;
   display: grid;
   grid-template-columns: minmax(0, var(--split)) 12px minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
@@ -907,9 +909,8 @@ nav button[aria-pressed="true"] {
 }
 .pane-header {
   position: relative;
-  z-index: 3;
-  min-height: 56px;
-  padding: 8px 12px;
+  min-height: 48px;
+  padding: 4px 12px;
   border-bottom: 1px solid var(--border);
 }
 h2 {
@@ -937,16 +938,16 @@ h2 small {
 }
 .selection-actions {
   position: relative;
-  z-index: 4;
-  min-height: 48px;
-  padding: 4px 10px;
+  min-height: 44px;
+  padding: 2px 10px;
   border-bottom: 1px solid var(--border);
 }
 .selection-actions .tooltip-bubble {
   top: auto;
   bottom: calc(100% + 7px);
+  transform-origin: bottom right;
 }
-.selection-actions > span {
+.selection-actions > span:not(.tooltip-anchor) {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -991,7 +992,7 @@ h2 small {
   flex-wrap: wrap;
   gap: 5px 16px;
   border-top: 1px solid var(--border);
-  padding-top: 9px;
+  padding-top: 5px;
   color: var(--muted);
   font-size: 12px;
 }
@@ -1047,6 +1048,9 @@ pre[data-testid="source"] {
   --editor-font: ui-monospace, monospace;
   --jse-font-family-mono: var(--editor-font);
 }
+.panes .tree-editor {
+  --jse-selection-background-inactive-color: transparent;
+}
 .panes .cm-editor .cm-panels {
   color: var(--jse-panel-color);
   background: var(--jse-panel-background);
@@ -1098,6 +1102,13 @@ pre[data-testid="source"] {
 .panes .jse-expand {
   color: var(--jse-delimiter-color);
 }
+.app-shell
+  .panes
+  .jse-navigation-bar-dropdown
+  button.jse-navigation-bar-dropdown-item.jse-selected {
+  background: var(--editor-selection);
+  color: var(--editor-foreground);
+}
 .panes .jse-json-node.jse-root .jse-header {
   align-items: center;
 }
@@ -1141,7 +1152,7 @@ pre[data-testid="source"] {
   }
   .workspace-header {
     margin: 0 -10px;
-    padding: 8px 10px;
+    padding: 6px 10px;
   }
   .workspace-header {
     align-items: flex-start;

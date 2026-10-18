@@ -513,6 +513,52 @@ test("expand all and collapse all affect every nested tree branch", async ({
   await expect(inner).toBeVisible();
 });
 
+test("selected tree breadcrumb uses the theme selection color", async ({
+  page,
+}) => {
+  await source(page, '{"outer":{"inner":1}}');
+  await chooseView(page, "Tree");
+  const outer = page.getByRole("treeitem", { name: /outer/ }).last();
+  await outer.getByRole("button", { name: /Expand or collapse/ }).click();
+  await page.getByRole("treeitem", { name: "inner : 1", exact: true }).click();
+  await page.locator(".jse-navigation-bar-arrow").first().click();
+  const selected = page.locator(
+    ".jse-navigation-bar-dropdown-item.jse-selected",
+  );
+  await expect(selected).toBeVisible();
+  await expect(selected).toHaveCSS("background-color", "rgb(0, 80, 164)");
+});
+
+test("tree selection highlight is muted when the tree pane is unfocused", async ({
+  page,
+}) => {
+  await source(page, '{"status":"success"}');
+  await chooseView(page, "Split");
+  const status = page.getByRole("treeitem", {
+    name: "status : success",
+    exact: true,
+  });
+  await status.locator(".jse-key-outer").click();
+
+  const selectedKey = page.locator(".tree-editor .jse-selected-key");
+  await expect(selectedKey).toHaveCSS("background-color", "rgb(0, 80, 164)");
+  await page.locator('[aria-label="Source pane"] .cm-content').click();
+  await expect(selectedKey).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+});
+
+test("workspace chrome uses compact vertical spacing", async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 800 });
+  const header = page.locator(".workspace > .workspace-header");
+  const paneHeader = page.locator(".panes .pane-header").first();
+  const panes = page.locator(".panes");
+  const status = page.getByRole("region", { name: "Document status" });
+
+  await expect(header).toHaveJSProperty("offsetHeight", 49);
+  await expect(paneHeader).toHaveJSProperty("offsetHeight", 49);
+  await expect(panes).toHaveCSS("margin-top", "0px");
+  await expect(status).toHaveCSS("padding-top", "5px");
+});
+
 test("code folding gutter is visibly enlarged", async ({ page }) => {
   await source(page, '{"outer":{"inner":1}}');
   await page.getByRole("button", { name: "Format", exact: true }).click();
@@ -580,13 +626,29 @@ test("copy subtree preserves selected source tokens exactly", async ({
     exact: true,
   });
   await copySubtree.hover();
+  const subtreeTooltip = page.getByRole("tooltip", { name: "Copy subtree" });
+  await expect(subtreeTooltip).toBeVisible();
   await expect(
-    page.getByRole("tooltip", { name: "Copy subtree" }),
-  ).toBeVisible();
+    page.locator(".selection-actions .tooltip-anchor").last(),
+  ).toHaveCSS("overflow", "visible");
   await copySubtree.click();
   expect(await page.evaluate(() => (window as any).__clipboardText)).toBe(
     String.raw`{"n":9007199254740993,"s":"\u0061","decimal":1.2300}`,
   );
+});
+
+test("tree pane header tooltips layer above selection actions", async ({
+  page,
+}) => {
+  await source(page, '{"a":1}');
+  await chooseView(page, "Tree");
+
+  const expand = page.getByRole("button", { name: "Expand all" });
+  await expand.hover();
+  await expect(page.getByRole("tooltip", { name: "Expand all" })).toBeVisible();
+  await expect(
+    page.locator('[aria-label="Tree pane"] > .pane-header'),
+  ).toHaveCSS("z-index", "5");
 });
 
 test("source edits invalidate a prior tree selection for subtree copy", async ({

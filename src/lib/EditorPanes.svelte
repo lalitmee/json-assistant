@@ -334,9 +334,9 @@
               class="icon-button"
               aria-label="Expand all"
               onclick={() => treeEditor.expand([], () => true)}
-              ><svg viewBox="0 0 24 24" aria-hidden="true"
+              ><svg viewBox="0 -960 960 960" aria-hidden="true"
                 ><path
-                  d="M7 10l5 5 5-5H7zm-4 2a9 9 0 1 1 18 0 9 9 0 0 1-18 0zm2 0a7 7 0 1 0 14 0 7 7 0 0 0-14 0z"
+                  d="M480-80 240-320l57-57 183 183 183-183 57 57L480-80ZM298-584l-58-56 240-240 240 240-58 56-182-182-182 182Z"
                 /></svg
               ></button
             ></Tooltip
@@ -345,9 +345,9 @@
               class="icon-button"
               aria-label="Collapse all"
               onclick={() => treeEditor.collapse([], true)}
-              ><svg viewBox="0 0 24 24" aria-hidden="true"
+              ><svg viewBox="0 -960 960 960" aria-hidden="true"
                 ><path
-                  d="M7 14l5-5 5 5H7zm-4-2a9 9 0 1 1 18 0 9 9 0 0 1-18 0zm2 0a7 7 0 1 0 14 0 7 7 0 0 0-14 0z"
+                  d="m296-80-56-56 240-240 240 240-56 56-184-184L296-80Zm184-504L240-824l56-56 184 184 184-184 56 56-240 240Z"
                 /></svg
               ></button
             ></Tooltip

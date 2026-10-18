@@ -139,7 +139,11 @@ describe("workspace controls", () => {
   });
   it("keeps header vertical padding compact", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
-    expect(css).toMatch(/\.workspace-header\s*\{[^}]*padding:\s*8px 12px/);
+    expect(css).toMatch(/\.workspace-header\s*\{[^}]*padding:\s*6px 12px/);
+    expect(css).toMatch(
+      /\.brand-mark\s*\{[^}]*height:\s*34px[^}]*width:\s*34px/,
+    );
+    expect(css).toMatch(/\.identity p\s*\{[^}]*line-height:\s*1\.2/);
   });
   it("places the workspace header flush with the viewport top", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
@@ -149,7 +153,7 @@ describe("workspace controls", () => {
       /@media \(max-width: 700px\)[\s\S]*?\.workspace\s*\{[^}]*padding:\s*0 10px 10px/,
     );
     expect(css).toMatch(
-      /@media \(max-width: 700px\)[\s\S]*?\.workspace-header\s*\{[^}]*margin:\s*0 -10px/,
+      /@media \(max-width: 700px\)[\s\S]*?\.workspace-header\s*\{[^}]*margin:\s*0 -10px[^}]*padding:\s*6px 10px/,
     );
   });
   it("keeps the workspace view label and narrower toggle on one row", () => {
@@ -220,12 +224,61 @@ describe("workspace controls", () => {
     expect(css).toMatch(
       /button:where\(:not\(\.jse-main button\)\) \{[\s\S]*?min-height: 40px/,
     );
+    expect(css).toMatch(
+      /\.icon-button\s*\{[^}]*width:\s*40px[^}]*height:\s*40px/,
+    );
+    expect(css).toMatch(
+      /\.icon-button svg\s*\{[^}]*width:\s*18px[^}]*height:\s*18px/,
+    );
+  });
+  it("raises hovered tooltips above neighboring pane controls", () => {
+    const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
+    const tooltip = readFileSync(
+      new URL("./lib/Tooltip.svelte", import.meta.url),
+      "utf8",
+    );
+    expect(tooltip).toMatch(
+      /\.tooltip-anchor:is\(:hover, :focus-within\)\s*\{[^}]*z-index:\s*31/,
+    );
+    expect(css).not.toMatch(/\.pane-header\s*\{[^}]*z-index:/);
+    expect(css).not.toMatch(/\.selection-actions\s*\{[^}]*z-index:/);
+  });
+  it("animates tooltip entrances and respects reduced motion", () => {
+    const tooltip = readFileSync(
+      new URL("./lib/Tooltip.svelte", import.meta.url),
+      "utf8",
+    );
+    const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
+    expect(tooltip).toMatch(/\.tooltip-bubble\s*\{[^}]*scale:\s*0\.9/);
+    expect(tooltip).toMatch(/transition:[\s\S]*?scale 180ms ease-out/);
+    expect(tooltip).toMatch(/transform-origin:\s*top center/);
+    expect(tooltip).toMatch(
+      /\.tooltip-anchor:is\(:hover, :focus-within\) \.tooltip-bubble\s*\{[^}]*scale:\s*1/,
+    );
+    expect(css).toMatch(
+      /\.selection-actions \.tooltip-bubble\s*\{[^}]*transform-origin:\s*bottom right/,
+    );
+    expect(tooltip).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.tooltip-bubble\s*\{[^}]*transition:\s*none/,
+    );
+  });
+  it("uses Material Symbols artwork for tree expand and collapse", () => {
+    const panes = readFileSync(
+      new URL("./lib/EditorPanes.svelte", import.meta.url),
+      "utf8",
+    );
+    expect(panes).toMatch(
+      /aria-label="Expand all"[\s\S]*?viewBox="0 -960 960 960"[\s\S]*?M480-80 240-320l57-57 183 183 183-183 57 57L480-80Z/,
+    );
+    expect(panes).toMatch(
+      /aria-label="Collapse all"[\s\S]*?viewBox="0 -960 960 960"[\s\S]*?m296-80-56-56 240-240 240 240-56 56-184-184L296-80/,
+    );
   });
   it("bounds the editor and keeps processing cancellation in the pane toolbar", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
     expect(css).toMatch(/\.workspace\s*\{[^}]*height: 100dvh/);
     expect(css).toMatch(/\.panes\s*\{[^}]*min-height: 0/);
-    expect(css).toMatch(/\.panes\s*\{[^}]*margin-top: 10px/);
+    expect(css).not.toMatch(/\.panes\s*\{[^}]*margin-top:/);
     expect(css).toMatch(
       /\.panes\s*\{[^}]*grid-template-rows: minmax\(0, 1fr\)/,
     );
@@ -272,7 +325,7 @@ describe("workspace controls", () => {
   });
   it("styles selection tooltips and code-fold controls for visibility", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
-    expect(css).toMatch(/\.selection-actions\s*\{[^}]*z-index:\s*4/);
+    expect(css).not.toMatch(/\.selection-actions\s*\{[^}]*z-index:/);
     expect(css).toMatch(
       /\.selection-actions \.tooltip-bubble\s*\{[^}]*bottom:\s*calc\(100% \+ 7px\)/,
     );
