@@ -84,7 +84,7 @@ describe("workspace controls", () => {
       "utf8",
     );
     expect(html).toContain("<title>JSON Assistant</title>");
-    expect(readme).toMatch(/^# JSON Assistant/m);
+    expect(readme).toMatch(/<h1>JSON Assistant<\/h1>/);
   });
   it("groups filename and status and uses the same logo asset in both headers", () => {
     const { body } = render(App);
