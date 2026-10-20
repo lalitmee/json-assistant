@@ -323,7 +323,11 @@
   <main class="workspace" hidden={page === "settings"}>
     <header class="workspace-header">
       <div class="identity">
-        <img class="brand-mark" src="/logo.svg" alt="" />
+        <img
+          class="brand-mark"
+          src={`${import.meta.env.BASE_URL}logo.svg`}
+          alt=""
+        />
         <div>
           <h1>JSON Assistant</h1>
           <p>Private developer workspace</p>
@@ -519,7 +523,11 @@
         ></Tooltip
       >
       <div class="identity">
-        <img class="brand-mark" src="/logo.svg" alt="" />
+        <img
+          class="brand-mark"
+          src={`${import.meta.env.BASE_URL}logo.svg`}
+          alt=""
+        />
         <div>
           <span class="settings-brand-name">JSON Assistant</span>
           <p>Private developer workspace</p>

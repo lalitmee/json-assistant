@@ -91,7 +91,11 @@ describe("workspace controls", () => {
     expect(body).toMatch(
       /class="document-meta"[\s\S]*document\.json[\s\S]*class="status-badge"/,
     );
-    expect(body.match(/src="\/logo\.svg"/g)).toHaveLength(2);
+    expect(
+      body.match(
+        new RegExp(`src="${import.meta.env.BASE_URL}logo\\.svg"`, "g"),
+      ),
+    ).toHaveLength(2);
     expect(body).toMatch(/aria-label="Open settings"[^>]*><svg/);
     expect(body).toMatch(
       /aria-label="Undo document change"[\s\S]*role="tooltip"[^>]*>Undo document change/,
@@ -104,6 +108,19 @@ describe("workspace controls", () => {
     );
     expect(body).toMatch(
       /aria-label="Redo document change"[^>]*><svg[^>]*><path d="M396-200q-97 0-166\.5-63T160-420/,
+    );
+  });
+  it("resolves logos and appearance icons relative to the app path", () => {
+    const app = readFileSync(new URL("./App.svelte", import.meta.url), "utf8");
+    const segmentedControl = readFileSync(
+      new URL("./lib/SegmentedControl.svelte", import.meta.url),
+      "utf8",
+    );
+    expect(app.match(/import\.meta\.env\.BASE_URL\}logo\.svg/g)).toHaveLength(
+      2,
+    );
+    expect(segmentedControl).toContain(
+      'url("${import.meta.env.BASE_URL}icons/material/${option.icon}.svg")',
     );
   });
   it("right-aligns history tooltips within the code pane", () => {
