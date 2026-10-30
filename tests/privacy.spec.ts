@@ -38,7 +38,9 @@ test("synthetic payload stays local and download contains exact source", async (
   await editor.press("ControlOrMeta+a");
   await page.keyboard.insertText(payload);
   await expect(page.getByTestId("source")).toHaveText(payload);
-  await page.getByRole("button", { name: "Search" }).click();
+  await page
+    .getByRole("button", { name: "Search fields", exact: true })
+    .click();
   await page.getByPlaceholder("Find").fill(canary);
   await page.getByRole("button", { name: "Format", exact: true }).click();
   await page.evaluate(() => history.replaceState(null, "", location.pathname));

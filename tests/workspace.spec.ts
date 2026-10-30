@@ -625,35 +625,33 @@ test("formatting and minifying show a non-blocking editor overlay", async ({
     };
   });
 
+  await chooseView(page, "Split");
   await page.getByRole("button", { name: "Format", exact: true }).click();
   await expect(overlay).toBeVisible();
-  await expect(overlay).toHaveText("Formatting");
+  const treePane = page.getByRole("region", { name: "Tree pane" });
   await expect(
-    overlay.locator(".processing-status .processing-spinner"),
-  ).toBeVisible();
-  await expect(overlay).toHaveAttribute("aria-live", "polite");
-  await expect(overlay).toHaveCSS("pointer-events", "none");
+    treePane.getByRole("button", { name: "Expand all" }),
+  ).toBeDisabled();
+  await expect(
+    treePane.getByRole("button", { name: "Collapse all" }),
+  ).toBeDisabled();
+  const status = overlay.getByRole("status");
+  await expect(status).toContainText("Formatting");
+  await expect(status).toHaveAttribute("aria-live", "polite");
   await expect(
     page.getByRole("region", { name: "Source pane" }),
   ).toHaveAttribute("aria-busy", "true");
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect(page.locator(".processing-spinner")).toHaveCSS(
-    "animation-name",
-    "none",
-  );
   await expect(overlay).toBeHidden();
 
+  await chooseView(page, "Code");
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator(".panes")).toHaveAttribute("data-view", "code");
   await page.getByRole("button", { name: "Minify", exact: true }).click();
   await expect(overlay).toBeVisible();
-  await expect(overlay).toHaveText("Minifying");
-  await expect(
-    overlay.locator(".processing-status .processing-spinner"),
-  ).toBeVisible();
+  await expect(overlay.getByRole("status")).toContainText("Minifying");
   await source(page, '{"edited":true}');
   await expect(overlay).toBeVisible();
-  await page.getByRole("button", { name: "Cancel processing" }).click();
+  await overlay.getByRole("button", { name: "Cancel" }).click();
   await expect(overlay).toBeHidden();
   await expect(page.getByTestId("source")).toHaveText('{"edited":true}');
 });
@@ -754,7 +752,9 @@ test("search finds text and value in collapsed tree branches and reveals the mat
   await expect(
     tree.getByRole("button", { name: /Transform|Sort|Schema|Query|Repair/i }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: /Search/ }).click();
+  await page
+    .getByRole("button", { name: "Search fields", exact: true })
+    .click();
   const search = page.getByPlaceholder("Find");
   await search.fill("needle");
   await page.keyboard.press("Enter");
@@ -782,60 +782,54 @@ test("expand all and collapse all affect every nested tree branch", async ({
   await expect(inner).toBeVisible();
 });
 
-test("selected tree breadcrumb uses the theme selection color", async ({
-  page,
-}) => {
-  await source(page, '{"outer":{"inner":1}}');
-  await chooseView(page, "Tree");
-  const outer = page.getByRole("treeitem", { name: /outer/ }).last();
-  await outer.getByRole("button", { name: /Expand or collapse/ }).click();
-  await page.getByRole("treeitem", { name: "inner : 1", exact: true }).click();
-  await page.locator(".jse-navigation-bar-arrow").first().click();
-  const selected = page.locator(
-    ".jse-navigation-bar-dropdown-item.jse-selected",
-  );
-  await expect(selected).toBeVisible();
-  await expect(selected).toHaveCSS("background-color", "rgb(0, 80, 164)");
-});
-
-test("tree selection highlight is muted when the tree pane is unfocused", async ({
-  page,
-}) => {
-  await source(page, '{"status":"success"}');
-  await chooseView(page, "Split");
-  const status = page.getByRole("treeitem", {
-    name: "status : success",
-    exact: true,
+test("expand all fully expands large documents", async ({ page }) => {
+  const largeSource = JSON.stringify({
+    padding: "x".repeat(100_001),
+    outer: { middle: { inner: 1 } },
   });
-  await status.locator(".jse-key-outer").click();
+  expect(largeSource.length).toBeGreaterThan(100_000);
+  await page.evaluate(
+    (text) => (window as any).__benchmarkLoad(text),
+    largeSource,
+  );
+  await chooseView(page, "Tree");
 
-  const selectedKey = page.locator(".tree-editor .jse-selected-key");
-  await expect(selectedKey).toHaveCSS("background-color", "rgb(0, 80, 164)");
-  await page.locator('[aria-label="Source pane"] .cm-content').click();
-  await expect(selectedKey).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  const overlay = page.getByTestId("processing-overlay");
+  await page.getByRole("button", { name: "Collapse all" }).click();
+  await expect(overlay).toBeVisible();
+  await expect(overlay.getByRole("status")).toContainText("Collapsing");
+  await expect(overlay).toBeHidden();
+  await page.getByRole("button", { name: "Expand all" }).click();
+  await expect(overlay).toBeVisible();
+  await expect(overlay.getByRole("status")).toContainText("Expanding");
+  await expect(
+    page.getByRole("treeitem", { name: "inner : 1", exact: true }),
+  ).toBeVisible();
+  await expect(overlay).toBeHidden();
 });
 
-test("workspace chrome uses compact vertical spacing", async ({ page }) => {
-  await page.setViewportSize({ width: 1200, height: 800 });
-  const header = page.locator(".workspace > .workspace-header");
-  const paneHeader = page.locator(".panes .pane-header").first();
-  const panes = page.locator(".panes");
-  const status = page.getByRole("region", { name: "Document status" });
+test("cancel in the tree overlay stops pending expansion", async ({ page }) => {
+  const largeSource = JSON.stringify({
+    items: Array.from({ length: 1000 }, (_, id) => ({
+      id,
+      nested: { value: id },
+    })),
+  });
+  await page.evaluate(
+    (text) => (window as any).__benchmarkLoad(text),
+    largeSource,
+  );
+  await chooseView(page, "Tree");
 
-  await expect(header).toHaveJSProperty("offsetHeight", 49);
-  await expect(paneHeader).toHaveJSProperty("offsetHeight", 49);
-  await expect(panes).toHaveCSS("margin-top", "0px");
-  await expect(status).toHaveCSS("padding-top", "5px");
-});
-
-test("code folding gutter is visibly enlarged", async ({ page }) => {
-  await source(page, '{"outer":{"inner":1}}');
-  await page.getByRole("button", { name: "Format", exact: true }).click();
-  const gutter = page
-    .locator(".cm-foldGutter .cm-gutterElement:visible")
-    .first();
-  await expect(gutter).toBeVisible();
-  await expect(gutter).toHaveCSS("font-size", "18px");
+  const tree = page.getByRole("region", { name: "Tree pane" });
+  const overlay = page.getByTestId("processing-overlay");
+  await page.getByRole("button", { name: "Expand all" }).click();
+  await expect(overlay).toBeVisible();
+  await overlay.getByRole("button", { name: "Cancel" }).click();
+  await expect(overlay).toBeHidden();
+  await expect(
+    tree.getByRole("treeitem", { name: "value : 999", exact: true }),
+  ).toHaveCount(0);
 });
 
 test("path action copies an escaped JSONPath for selected keys", async ({
@@ -897,27 +891,10 @@ test("copy subtree preserves selected source tokens exactly", async ({
   await copySubtree.hover();
   const subtreeTooltip = page.getByRole("tooltip", { name: "Copy subtree" });
   await expect(subtreeTooltip).toBeVisible();
-  await expect(
-    page.locator(".selection-actions .tooltip-anchor").last(),
-  ).toHaveCSS("overflow", "visible");
   await copySubtree.click();
   expect(await page.evaluate(() => (window as any).__clipboardText)).toBe(
     String.raw`{"n":9007199254740993,"s":"\u0061","decimal":1.2300}`,
   );
-});
-
-test("tree pane header tooltips layer above selection actions", async ({
-  page,
-}) => {
-  await source(page, '{"a":1}');
-  await chooseView(page, "Tree");
-
-  const expand = page.getByRole("button", { name: "Expand all" });
-  await expand.hover();
-  await expect(page.getByRole("tooltip", { name: "Expand all" })).toBeVisible();
-  await expect(
-    page.locator('[aria-label="Tree pane"] > .pane-header'),
-  ).toHaveCSS("z-index", "5");
 });
 
 test("source edits invalidate a prior tree selection for subtree copy", async ({

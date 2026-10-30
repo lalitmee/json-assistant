@@ -294,7 +294,7 @@ describe("workspace controls", () => {
       /aria-label="Collapse all"[\s\S]*?viewBox="0 -960 960 960"[\s\S]*?m296-80-56-56 240-240 240 240-56 56-184-184L296-80/,
     );
   });
-  it("bounds the editor and keeps processing cancellation in the pane toolbar", () => {
+  it("bounds the editor and keeps the processing card clickable", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
     expect(css).toMatch(/\.workspace\s*\{[^}]*height: 100dvh/);
     expect(css).toMatch(/\.panes\s*\{[^}]*min-height: 0/);
@@ -303,24 +303,22 @@ describe("workspace controls", () => {
       /\.panes\s*\{[^}]*grid-template-rows: minmax\(0, 1fr\)/,
     );
     expect(css).not.toMatch(/\.pending-actions\s*\{[^}]*position: absolute/);
-    expect(
-      readFileSync(
-        new URL("./lib/EditorPanes.svelte", import.meta.url),
-        "utf8",
-      ),
-    ).toContain('aria-label="Cancel processing"');
+    expect(css).toMatch(/\.processing-overlay\s*\{[^}]*pointer-events: none/);
+    expect(css).toMatch(/\.processing-card\s*\{[^}]*pointer-events: auto/);
   });
-  it("keeps cancel before history and provides recursive tree controls", () => {
+  it("places cancellation in the overlay card and provides recursive tree controls", () => {
     const panes = readFileSync(
       new URL("./lib/EditorPanes.svelte", import.meta.url),
       "utf8",
     );
-    expect(panes.indexOf('aria-label="Cancel processing"')).toBeLessThan(
-      panes.indexOf('aria-label="Undo document change"'),
-    );
+    expect(panes).toContain('class="processing-card"');
+    expect(panes).toContain('class="processing-cancel"');
+    expect(panes).toContain('role="status"');
+    expect(panes).toContain("cancelTreeOperation() : onCancel()");
     expect(panes).toContain('aria-label="Expand all"');
     expect(panes).toContain('aria-label="Collapse all"');
-    expect(panes).toContain("treeEditor.expand([], () => true)");
+    expect(panes).toContain("onclick={expandAll}");
+    expect(panes).toContain("cancelTreeOperation();");
     expect(panes).toContain("treeEditor.collapse([], true)");
   });
   it("keeps format actions in the toolbar layout while processing", () => {
@@ -351,14 +349,29 @@ describe("workspace controls", () => {
   });
   it("styles selection tooltips and code-fold controls for visibility", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
+    const panes = readFileSync(
+      new URL("./lib/EditorPanes.svelte", import.meta.url),
+      "utf8",
+    );
     expect(css).not.toMatch(/\.selection-actions\s*\{[^}]*z-index:/);
     expect(css).toMatch(
       /\.selection-actions \.tooltip-bubble\s*\{[^}]*bottom:\s*calc\(100% \+ 7px\)/,
     );
     expect(css).toMatch(/\.cm-foldGutter \.cm-gutterElement/);
     expect(css).toMatch(
-      /\.cm-foldGutter \.cm-gutterElement\s*\{[^}]*font-size:\s*18px/,
+      /\.cm-foldGutter \.cm-gutterElement\s*\{[^}]*min-width:\s*24px[^}]*font-size:\s*18px/,
     );
+    expect(css).toMatch(
+      /\.cm-foldGutter \.cm-gutterElement\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center[^}]*justify-content:\s*center/,
+    );
+    expect(panes).not.toContain('aria-label="Code folding keyboard shortcuts');
+    expect(panes).not.toContain('aria-label="Search in source"');
+    const help = readFileSync(
+      new URL("./lib/KeyboardShortcuts.svelte", import.meta.url),
+      "utf8",
+    );
+    expect(help).toContain("Fold code");
+    expect(help).toContain("Cmd + Option + [");
   });
   it("themes the JSON editor context menu with the active workspace palette", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
@@ -460,7 +473,7 @@ describe("workspace controls", () => {
     expect(cobalt).toContain("background: #193549");
     expect(css).toMatch(/--editor-key: #ffc600/);
     expect(css).toMatch(/--jse-key-color: var\(--editor-key\)/);
-    expect(css).not.toMatch(
+    expect(css).toMatch(
       /\[data-appearance="(?:system|light)"\]\[data-theme="cobalt2"\]/,
     );
   });
@@ -469,11 +482,21 @@ describe("workspace controls", () => {
     const cobalt = css.match(
       /\.panes\[data-theme="cobalt2"\]\s*\{([^}]*)\}/,
     )?.[1];
-    expect(cobalt).toContain("--jse-value-color-string: #a5ff90");
-    expect(cobalt).toContain("--jse-value-color-url: #a5ff90");
-    expect(cobalt).toContain("--jse-value-color-number: #ff628c");
-    expect(cobalt).toContain("--jse-value-color-boolean: #ff628c");
-    expect(cobalt).toContain("--jse-value-color-null: #ff628c");
+    expect(cobalt).toContain(
+      "--jse-value-color-string: var(--cobalt-string, #a5ff90)",
+    );
+    expect(cobalt).toContain(
+      "--jse-value-color-url: var(--cobalt-string, #a5ff90)",
+    );
+    expect(cobalt).toContain(
+      "--jse-value-color-number: var(--cobalt-literal, #ff628c)",
+    );
+    expect(cobalt).toContain(
+      "--jse-value-color-boolean: var(--cobalt-literal, #ff628c)",
+    );
+    expect(cobalt).toContain(
+      "--jse-value-color-null: var(--cobalt-literal, #ff628c)",
+    );
   });
   it("themes Tree search highlights from the selected palette", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
@@ -490,7 +513,10 @@ describe("workspace controls", () => {
   it("keeps editor gutters compact and scrollbars theme-aware", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
     expect(css).toMatch(
-      /\.panes \.cm-foldGutter \.cm-gutterElement\s*\{[^}]*min-width: 16px/,
+      /\.panes \.cm-gutters:not\(:has\(\.cm-lint-marker\)\) \.cm-gutter-lint\s*\{[^}]*display:\s*none/,
+    );
+    expect(css).toMatch(
+      /\.panes \.cm-foldGutter \.cm-gutterElement\s*\{[^}]*min-width: 24px/,
     );
     expect(css).toMatch(
       /\.panes \.cm-lineNumbers \.cm-gutterElement\s*\{[^}]*padding: 0 3px/,
@@ -525,10 +551,10 @@ describe("workspace controls", () => {
   it("uses a readable error color for light variants", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
     expect(css).toMatch(
-      /\.app-shell\[data-appearance="light"\]:not\(\[data-theme="cobalt2"\]\)\s*\{[^}]*--error: #a61e4d/,
+      /\.app-shell\[data-appearance="light"\]\s*\{[^}]*--error: #a61e4d/,
     );
     expect(css).toMatch(
-      /@media \(prefers-color-scheme: light\)[\s\S]*?\.app-shell\[data-appearance="system"\]:not\(\[data-theme="cobalt2"\]\)\s*\{[^}]*--error: #a61e4d/,
+      /@media \(prefers-color-scheme: light\)[\s\S]*?\.app-shell\[data-appearance="system"\]\s*\{[^}]*--error: #a61e4d/,
     );
   });
   it("keeps Cobalt2 primary buttons dark and hover borders clean", () => {

@@ -1,10 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const isCI = Boolean(process.env.CI);
+const allBrowsers = isCI || Boolean(process.env.ALL_BROWSERS);
+
 export default defineConfig({
   testDir: "./tests",
-  fullyParallel: false,
+  fullyParallel: true,
   timeout: 30000,
-  workers: 1,
+  workers: isCI ? 2 : undefined,
   reporter: "list",
   use: {
     baseURL: "http://127.0.0.1:5173",
@@ -14,11 +17,13 @@ export default defineConfig({
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
+    ...(allBrowsers
+      ? [{ name: "firefox", use: { ...devices["Desktop Firefox"] } }]
+      : []),
   ],
   webServer: {
     command: "yarn dev --port 5173 --strictPort",
     url: "http://127.0.0.1:5173",
-    reuseExistingServer: false,
+    reuseExistingServer: !isCI,
   },
 });

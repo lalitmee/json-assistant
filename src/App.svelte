@@ -2,6 +2,7 @@
   import Tooltip from "./lib/Tooltip.svelte";
   import SegmentedControl from "./lib/SegmentedControl.svelte";
   import PreferenceDropdown from "./lib/PreferenceDropdown.svelte";
+  import KeyboardShortcuts from "./lib/KeyboardShortcuts.svelte";
   import { onMount, tick } from "svelte";
   import EditorPanes from "./lib/EditorPanes.svelte";
   import type { JSONPatchDocument } from "immutable-json-patch";
@@ -35,6 +36,7 @@
   let page: "workspace" | "settings" = "workspace";
   let settingsTrigger: HTMLButtonElement;
   let settingsHeading: HTMLHeadingElement;
+  let shortcuts: InstanceType<typeof KeyboardShortcuts>;
   function changePreference(next: Partial<Preferences>) {
     preferences = { ...preferences, ...next };
     if (next.view) view = next.view;
@@ -261,6 +263,33 @@
     void runOperation("analyze");
   function shortcut(event: KeyboardEvent) {
     if (event.isComposing) return;
+    if (
+      (event.ctrlKey || event.metaKey) &&
+      !event.shiftKey &&
+      !event.altKey &&
+      ["f", "h"].includes(event.key.toLowerCase()) &&
+      event.isTrusted
+    ) {
+      const target = event.target as HTMLElement;
+      const inTree = Boolean(target.closest('[aria-label="Tree pane"]'));
+      const replace = event.key.toLowerCase() === "h";
+      if (
+        replace &&
+        !target.closest('[aria-label="Tree pane"], [aria-label="Source pane"]')
+      )
+        return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      shortcuts.close();
+      page = "workspace";
+      if (!inTree && view === "tree") chooseView("code");
+      void tick().then(() =>
+        inTree
+          ? panes?.openTreeSearch(replace)
+          : panes?.openSourceSearch(replace),
+      );
+      return;
+    }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
       event.preventDefault();
       history(event.shiftKey ? "redo" : "undo");
@@ -424,6 +453,18 @@
             ></button
           ></Tooltip
         >
+        <Tooltip label="Keyboard shortcuts" align="end">
+          <button
+            class="icon-button"
+            aria-label="Keyboard shortcuts"
+            onclick={() => shortcuts.open()}
+            ><svg viewBox="0 0 24 24" aria-hidden="true"
+              ><path
+                d="M20 5H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zM5 8h2v2H5V8zm0 3h2v2H5v-2zm11 6H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm-3 3h-2v-2h2v2zm0-3h-2V8h2v2zm6 3h-2v-2h2v2zm0-3h-2V8h2v2z"
+              /></svg
+            ></button
+          >
+        </Tooltip>
       </div>
     </header>
     {#if document.analysis?.mode !== "unavailable"}
@@ -642,4 +683,5 @@
       </section>
     </div>
   </main>
+  <KeyboardShortcuts bind:this={shortcuts} />
 </div>

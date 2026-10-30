@@ -181,7 +181,7 @@
 @media (prefers-color-scheme: light) {
   /* Tokyo Night Light, Catppuccin Latte, Rosé Pine Dawn, Solarized Light,
      VS Code Light+, and GitHub Light Default. */
-  .app-shell[data-appearance="system"]:not([data-theme="cobalt2"]) {
+  .app-shell[data-appearance="system"] {
     --error: #a61e4d;
     color: var(--editor-foreground);
     background: var(--editor-background);
@@ -212,6 +212,19 @@
   }
 }
 @media (prefers-color-scheme: light) {
+  .app-shell[data-appearance="system"][data-theme="cobalt2"] {
+    --editor-background: #f5f9fc;
+    --editor-panel: #e7f0f7;
+    --editor-foreground: #193549;
+    --editor-key: #805b00;
+    --editor-value: #193549;
+    --editor-delimiter: #607d91;
+    --editor-selection: #c4dced;
+    --primary: #0050a4;
+    --primary-border: #0050a4;
+    --cobalt-string: #286b21;
+    --cobalt-literal: #ab2353;
+  }
   .app-shell[data-appearance="system"][data-theme="tokyo-night"] {
     --editor-background: #e6e7ed;
     --editor-panel: #d6d8df;
@@ -275,7 +288,7 @@
 .app-shell[data-appearance="light"][data-theme="github"] {
   color-scheme: light;
 }
-.app-shell[data-appearance="light"]:not([data-theme="cobalt2"]) {
+.app-shell[data-appearance="light"] {
   --error: #a61e4d;
   color: var(--editor-foreground);
   background: var(--editor-background);
@@ -376,11 +389,11 @@
   --jse-value-color-null: var(--editor-delimiter);
 }
 .panes[data-theme="cobalt2"] {
-  --jse-value-color-string: #a5ff90;
-  --jse-value-color-url: #a5ff90;
-  --jse-value-color-number: #ff628c;
-  --jse-value-color-boolean: #ff628c;
-  --jse-value-color-null: #ff628c;
+  --jse-value-color-string: var(--cobalt-string, #a5ff90);
+  --jse-value-color-url: var(--cobalt-string, #a5ff90);
+  --jse-value-color-number: var(--cobalt-literal, #ff628c);
+  --jse-value-color-boolean: var(--cobalt-literal, #ff628c);
+  --jse-value-color-null: var(--cobalt-literal, #ff628c);
 }
 .app-shell[data-appearance="light"] .panes[data-theme] {
   --jse-theme: light;
@@ -389,6 +402,19 @@
   .app-shell[data-appearance="system"] .panes[data-theme] {
     --jse-theme: light;
   }
+}
+.app-shell[data-appearance="light"][data-theme="cobalt2"] {
+  --editor-background: #f5f9fc;
+  --editor-panel: #e7f0f7;
+  --editor-foreground: #193549;
+  --editor-key: #805b00;
+  --editor-value: #193549;
+  --editor-delimiter: #607d91;
+  --editor-selection: #c4dced;
+  --primary: #0050a4;
+  --primary-border: #0050a4;
+  --cobalt-string: #286b21;
+  --cobalt-literal: #ab2353;
 }
 .app-shell[data-appearance="light"][data-theme="tokyo-night"] {
   --editor-background: #e6e7ed;
@@ -1008,15 +1034,6 @@ h2 small {
   flex-wrap: wrap;
   gap: 10px;
 }
-.cancel-slot,
-.cancel-slot > span {
-  display: inline-flex;
-  width: 76px;
-  flex: 0 0 76px;
-}
-.cancel-slot > span {
-  visibility: hidden;
-}
 .pane-actions button,
 .selection-actions button:not(.icon-button) {
   min-height: 40px;
@@ -1078,21 +1095,34 @@ h2 small {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
   pointer-events: none;
   background: color-mix(in srgb, var(--surface) 38%, transparent);
 }
-.processing-status {
+.processing-card {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  min-height: 42px;
-  padding: 8px 14px;
+  gap: 12px;
+  min-height: 52px;
+  padding: 10px 12px 10px 16px;
   border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
-  box-shadow: 0 4px 16px #0003;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--surface), var(--raised));
+  box-shadow: 0 8px 28px #0004;
   font-weight: 600;
+  pointer-events: auto;
+}
+.processing-cancel {
+  min-height: 34px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.processing-cancel:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .processing-spinner {
   width: 18px;
@@ -1187,8 +1217,14 @@ pre[data-testid="source"] {
 .panes .cm-lineNumbers .cm-gutterElement {
   padding: 0 3px;
 }
+.panes .cm-gutters:not(:has(.cm-lint-marker)) .cm-gutter-lint {
+  display: none;
+}
 .panes .cm-foldGutter .cm-gutterElement {
-  min-width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
   color: var(--jse-delimiter-color);
   font-size: 18px;
   line-height: 1.4;
