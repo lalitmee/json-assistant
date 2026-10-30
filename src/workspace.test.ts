@@ -347,9 +347,14 @@ describe("workspace controls", () => {
     expect(css).toMatch(
       /\.cm-foldGutter \.cm-gutterElement\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center[^}]*justify-content:\s*center/,
     );
-    expect(panes).toContain('aria-label="Code folding keyboard shortcuts');
-    expect(panes).toContain("Fold: Ctrl+Shift+[; unfold: Ctrl+Shift+]");
-    expect(panes).toContain("On macOS: Cmd+Option+[ and Cmd+Option+]");
+    expect(panes).not.toContain('aria-label="Code folding keyboard shortcuts');
+    expect(panes).not.toContain('aria-label="Search in source"');
+    const help = readFileSync(
+      new URL("./lib/KeyboardShortcuts.svelte", import.meta.url),
+      "utf8",
+    );
+    expect(help).toContain("Fold code");
+    expect(help).toContain("Cmd + Option + [");
   });
   it("themes the JSON editor context menu with the active workspace palette", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
@@ -451,7 +456,7 @@ describe("workspace controls", () => {
     expect(cobalt).toContain("background: #193549");
     expect(css).toMatch(/--editor-key: #ffc600/);
     expect(css).toMatch(/--jse-key-color: var\(--editor-key\)/);
-    expect(css).not.toMatch(
+    expect(css).toMatch(
       /\[data-appearance="(?:system|light)"\]\[data-theme="cobalt2"\]/,
     );
   });
@@ -460,11 +465,21 @@ describe("workspace controls", () => {
     const cobalt = css.match(
       /\.panes\[data-theme="cobalt2"\]\s*\{([^}]*)\}/,
     )?.[1];
-    expect(cobalt).toContain("--jse-value-color-string: #a5ff90");
-    expect(cobalt).toContain("--jse-value-color-url: #a5ff90");
-    expect(cobalt).toContain("--jse-value-color-number: #ff628c");
-    expect(cobalt).toContain("--jse-value-color-boolean: #ff628c");
-    expect(cobalt).toContain("--jse-value-color-null: #ff628c");
+    expect(cobalt).toContain(
+      "--jse-value-color-string: var(--cobalt-string, #a5ff90)",
+    );
+    expect(cobalt).toContain(
+      "--jse-value-color-url: var(--cobalt-string, #a5ff90)",
+    );
+    expect(cobalt).toContain(
+      "--jse-value-color-number: var(--cobalt-literal, #ff628c)",
+    );
+    expect(cobalt).toContain(
+      "--jse-value-color-boolean: var(--cobalt-literal, #ff628c)",
+    );
+    expect(cobalt).toContain(
+      "--jse-value-color-null: var(--cobalt-literal, #ff628c)",
+    );
   });
   it("themes Tree search highlights from the selected palette", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
@@ -519,10 +534,10 @@ describe("workspace controls", () => {
   it("uses a readable error color for light variants", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
     expect(css).toMatch(
-      /\.app-shell\[data-appearance="light"\]:not\(\[data-theme="cobalt2"\]\)\s*\{[^}]*--error: #a61e4d/,
+      /\.app-shell\[data-appearance="light"\]\s*\{[^}]*--error: #a61e4d/,
     );
     expect(css).toMatch(
-      /@media \(prefers-color-scheme: light\)[\s\S]*?\.app-shell\[data-appearance="system"\]:not\(\[data-theme="cobalt2"\]\)\s*\{[^}]*--error: #a61e4d/,
+      /@media \(prefers-color-scheme: light\)[\s\S]*?\.app-shell\[data-appearance="system"\]\s*\{[^}]*--error: #a61e4d/,
     );
   });
   it("keeps Cobalt2 primary buttons dark and hover borders clean", () => {

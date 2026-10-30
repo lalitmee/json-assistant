@@ -542,7 +542,9 @@ test("search finds text and value in collapsed tree branches and reveals the mat
   await expect(
     tree.getByRole("button", { name: /Transform|Sort|Schema|Query|Repair/i }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: /Search/ }).click();
+  await page
+    .getByRole("button", { name: "Search fields", exact: true })
+    .click();
   const search = page.getByPlaceholder("Find");
   await search.fill("needle");
   await page.keyboard.press("Enter");

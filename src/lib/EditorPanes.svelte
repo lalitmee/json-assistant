@@ -1,11 +1,17 @@
 <script lang="ts">
+  import { onMount, tick, flushSync } from "svelte";
+  import SearchPanel from "./SearchPanel.svelte";
+  import { createTreeSearch } from "./treeSearch";
   import Tooltip from "./Tooltip.svelte";
+  import { attachSourceSearch, type SearchController } from "./sourceSearch";
   import {
     JSONEditor,
     Mode,
     isTextContent,
     stringifyJSONPath,
     parseJSONPath,
+    createKeySelection,
+    createValueSelection,
   } from "svelte-jsoneditor";
   import type {
     Content,
@@ -51,9 +57,71 @@
   let suppressEditorCallback = false;
   let codeEditor: InstanceType<typeof JSONEditor>;
   let treeEditor: InstanceType<typeof JSONEditor>;
+  let sourcePane: HTMLElement;
+  let treePane: HTMLElement;
+  let treeSearchOpen = false;
+  const treeSearch = createTreeSearch({
+    source: () => state.source,
+    revision: () => state.revision,
+    isProcessing: () => state.processing,
+    available: () => !unavailable,
+    apply: (operations) =>
+      flushSync(() => {
+        applyPatch(operations);
+      }),
+    reveal: (match) => {
+      treeEditor.expand(match.path.slice(0, -1));
+      const selection =
+        match.field === "key"
+          ? createKeySelection(match.path)
+          : createValueSelection(match.path);
+      treeEditor.select(selection);
+      onSelection({ ...state.selection, tree: selection });
+      void treeEditor.scrollTo(match.path).catch(() => {});
+    },
+    focus: () => treeEditor.focus(),
+    undo: () => onHistory("undo"),
+    visibility: (open) => {
+      treeSearchOpen = open;
+      if (open)
+        void tick().then(() =>
+          treePane
+            ?.querySelector<HTMLInputElement>('[main-field="true"]')
+            ?.focus(),
+        );
+    },
+  });
+  let sourceSearch: SearchController | null = null;
+  let observedSearchRevision = state.revision;
+  let observedProcessing = state.processing;
   let treeTimer: number | undefined;
   let treeFrame: number | undefined;
   let treeGeneration = 0;
+
+  export function openSourceSearch(replace = false) {
+    sourceSearch?.open(replace);
+  }
+  export function openTreeSearch(replace = false) {
+    treeSearch.open(replace);
+  }
+
+  onMount(() => {
+    let cancelled = false;
+    void tick().then(() => {
+      if (!cancelled)
+        sourceSearch = attachSourceSearch(sourcePane, {
+          isProcessing: () => state.processing,
+          revision: () => state.revision,
+          undo: () => onHistory("undo"),
+        });
+    });
+    return () => {
+      cancelled = true;
+      treeSearch.destroy();
+      sourceSearch?.destroy();
+      sourceSearch = null;
+    };
+  });
 
   export function applyPatch(operations: JSONPatchDocument): string {
     const baseSource = sourceVersion;
@@ -93,6 +161,21 @@
   }
   $: unavailable =
     state.analysis?.revision !== state.revision || !state.analysis.valid;
+
+  $: if (sourceSearch && state.revision !== observedSearchRevision) {
+    observedSearchRevision = state.revision;
+    sourceSearch.documentChanged();
+    treeSearch.documentChanged();
+  }
+  $: if (sourceSearch && state.processing !== observedProcessing) {
+    observedProcessing = state.processing;
+    sourceSearch.sync();
+  }
+  $: {
+    unavailable;
+    state.processing;
+    treeSearch.sync();
+  }
 
   $: if (codeEditor) codeEditor.select(state.selection.code);
   $: if (treeEditor) treeEditor.select(state.selection.tree);
@@ -180,10 +263,7 @@
   }
 
   function openSearch() {
-    treeEditor.focus();
-    document.activeElement?.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "f", ctrlKey: true, bubbles: true }),
-    );
+    treeSearch.open();
   }
 
   function removedPaths(operations: JSONPatchDocument): string[][] {
@@ -346,6 +426,7 @@
     ></div>
   {/if}
   <section
+    bind:this={sourcePane}
     aria-label="Source pane"
     aria-busy={processingOperation === "format" ||
       processingOperation === "minify"}
@@ -380,15 +461,6 @@
             ></button
           ></Tooltip
         >
-        <Tooltip
-          label="Fold: Ctrl+Shift+[; unfold: Ctrl+Shift+]. On macOS: Cmd+Option+[ and Cmd+Option+]."
-          align="end"
-          ><button
-            class="icon-button"
-            aria-label="Code folding keyboard shortcuts: fold with Ctrl+Shift+[ or Cmd+Option+[ on macOS; unfold with Ctrl+Shift+] or Cmd+Option+] on macOS"
-            type="button">?</button
-          ></Tooltip
-        >
         {#if hasContent}<button
             class="format-action"
             disabled={state.processing}
@@ -416,6 +488,7 @@
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
   <section
     aria-label="Tree pane"
+    bind:this={treePane}
     aria-busy={processingOperation === "format" ||
       processingOperation === "minify" ||
       treeOperation !== undefined}
@@ -505,7 +578,11 @@
           ></Tooltip
         >{/if}
     </div>
-    <div class="tree-editor" hidden={unavailable}>
+    <div class="tree-editor" hidden={unavailable} style="position: relative">
+      {#if treeSearchOpen}<SearchPanel
+          controller={treeSearch}
+          scope="tree"
+        />{/if}
       <JSONEditor
         bind:this={treeEditor}
         content={tree}

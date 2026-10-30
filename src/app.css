@@ -173,7 +173,7 @@
 @media (prefers-color-scheme: light) {
   /* Tokyo Night Light, Catppuccin Latte, Rosé Pine Dawn, Solarized Light,
      VS Code Light+, and GitHub Light Default. */
-  .app-shell[data-appearance="system"]:not([data-theme="cobalt2"]) {
+  .app-shell[data-appearance="system"] {
     --error: #a61e4d;
     color: var(--editor-foreground);
     background: var(--editor-background);
@@ -204,6 +204,19 @@
   }
 }
 @media (prefers-color-scheme: light) {
+  .app-shell[data-appearance="system"][data-theme="cobalt2"] {
+    --editor-background: #f5f9fc;
+    --editor-panel: #e7f0f7;
+    --editor-foreground: #193549;
+    --editor-key: #805b00;
+    --editor-value: #193549;
+    --editor-delimiter: #607d91;
+    --editor-selection: #c4dced;
+    --primary: #0050a4;
+    --primary-border: #0050a4;
+    --cobalt-string: #286b21;
+    --cobalt-literal: #ab2353;
+  }
   .app-shell[data-appearance="system"][data-theme="tokyo-night"] {
     --editor-background: #e6e7ed;
     --editor-panel: #d6d8df;
@@ -267,7 +280,7 @@
 .app-shell[data-appearance="light"][data-theme="github"] {
   color-scheme: light;
 }
-.app-shell[data-appearance="light"]:not([data-theme="cobalt2"]) {
+.app-shell[data-appearance="light"] {
   --error: #a61e4d;
   color: var(--editor-foreground);
   background: var(--editor-background);
@@ -368,11 +381,11 @@
   --jse-value-color-null: var(--editor-delimiter);
 }
 .panes[data-theme="cobalt2"] {
-  --jse-value-color-string: #a5ff90;
-  --jse-value-color-url: #a5ff90;
-  --jse-value-color-number: #ff628c;
-  --jse-value-color-boolean: #ff628c;
-  --jse-value-color-null: #ff628c;
+  --jse-value-color-string: var(--cobalt-string, #a5ff90);
+  --jse-value-color-url: var(--cobalt-string, #a5ff90);
+  --jse-value-color-number: var(--cobalt-literal, #ff628c);
+  --jse-value-color-boolean: var(--cobalt-literal, #ff628c);
+  --jse-value-color-null: var(--cobalt-literal, #ff628c);
 }
 .app-shell[data-appearance="light"] .panes[data-theme] {
   --jse-theme: light;
@@ -381,6 +394,19 @@
   .app-shell[data-appearance="system"] .panes[data-theme] {
     --jse-theme: light;
   }
+}
+.app-shell[data-appearance="light"][data-theme="cobalt2"] {
+  --editor-background: #f5f9fc;
+  --editor-panel: #e7f0f7;
+  --editor-foreground: #193549;
+  --editor-key: #805b00;
+  --editor-value: #193549;
+  --editor-delimiter: #607d91;
+  --editor-selection: #c4dced;
+  --primary: #0050a4;
+  --primary-border: #0050a4;
+  --cobalt-string: #286b21;
+  --cobalt-literal: #ab2353;
 }
 .app-shell[data-appearance="light"][data-theme="tokyo-night"] {
   --editor-background: #e6e7ed;
