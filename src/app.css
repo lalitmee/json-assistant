@@ -1107,8 +1107,14 @@ pre[data-testid="source"] {
 .panes .cm-lineNumbers .cm-gutterElement {
   padding: 0 3px;
 }
+.panes .cm-gutters:not(:has(.cm-lint-marker)) .cm-gutter-lint {
+  display: none;
+}
 .panes .cm-foldGutter .cm-gutterElement {
-  min-width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
   color: var(--jse-delimiter-color);
   font-size: 18px;
   line-height: 1.4;

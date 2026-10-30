@@ -332,14 +332,24 @@ describe("workspace controls", () => {
   });
   it("styles selection tooltips and code-fold controls for visibility", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
+    const panes = readFileSync(
+      new URL("./lib/EditorPanes.svelte", import.meta.url),
+      "utf8",
+    );
     expect(css).not.toMatch(/\.selection-actions\s*\{[^}]*z-index:/);
     expect(css).toMatch(
       /\.selection-actions \.tooltip-bubble\s*\{[^}]*bottom:\s*calc\(100% \+ 7px\)/,
     );
     expect(css).toMatch(/\.cm-foldGutter \.cm-gutterElement/);
     expect(css).toMatch(
-      /\.cm-foldGutter \.cm-gutterElement\s*\{[^}]*font-size:\s*18px/,
+      /\.cm-foldGutter \.cm-gutterElement\s*\{[^}]*min-width:\s*24px[^}]*font-size:\s*18px/,
     );
+    expect(css).toMatch(
+      /\.cm-foldGutter \.cm-gutterElement\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center[^}]*justify-content:\s*center/,
+    );
+    expect(panes).toContain('aria-label="Code folding keyboard shortcuts');
+    expect(panes).toContain("Fold: Ctrl+Shift+[; unfold: Ctrl+Shift+]");
+    expect(panes).toContain("On macOS: Cmd+Option+[ and Cmd+Option+]");
   });
   it("themes the JSON editor context menu with the active workspace palette", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
@@ -471,7 +481,10 @@ describe("workspace controls", () => {
   it("keeps editor gutters compact and scrollbars theme-aware", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
     expect(css).toMatch(
-      /\.panes \.cm-foldGutter \.cm-gutterElement\s*\{[^}]*min-width: 16px/,
+      /\.panes \.cm-gutters:not\(:has\(\.cm-lint-marker\)\) \.cm-gutter-lint\s*\{[^}]*display:\s*none/,
+    );
+    expect(css).toMatch(
+      /\.panes \.cm-foldGutter \.cm-gutterElement\s*\{[^}]*min-width: 24px/,
     );
     expect(css).toMatch(
       /\.panes \.cm-lineNumbers \.cm-gutterElement\s*\{[^}]*padding: 0 3px/,

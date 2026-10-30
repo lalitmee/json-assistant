@@ -380,6 +380,15 @@
             ></button
           ></Tooltip
         >
+        <Tooltip
+          label="Fold: Ctrl+Shift+[; unfold: Ctrl+Shift+]. On macOS: Cmd+Option+[ and Cmd+Option+]."
+          align="end"
+          ><button
+            class="icon-button"
+            aria-label="Code folding keyboard shortcuts: fold with Ctrl+Shift+[ or Cmd+Option+[ on macOS; unfold with Ctrl+Shift+] or Cmd+Option+] on macOS"
+            type="button">?</button
+          ></Tooltip
+        >
         {#if hasContent}<button
             class="format-action"
             disabled={state.processing}
