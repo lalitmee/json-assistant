@@ -58,7 +58,7 @@
           class="material-icon"
           data-material-icon={option.icon}
           aria-hidden="true"
-          style={`--material-icon: url("${import.meta.env.BASE_URL}icons/material/${option.icon}.svg")`}
+          style={`mask: url("${import.meta.env.BASE_URL}icons/material/${option.icon}.svg") center / contain no-repeat; -webkit-mask: url("${import.meta.env.BASE_URL}icons/material/${option.icon}.svg") center / contain no-repeat`}
         ></span>
       {:else}
         {option.label}

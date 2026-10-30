@@ -824,8 +824,6 @@ nav button[aria-pressed="true"] {
   width: 18px;
   height: 18px;
   background-color: currentColor;
-  mask: var(--material-icon) center / contain no-repeat;
-  -webkit-mask: var(--material-icon) center / contain no-repeat;
 }
 .preference-field {
   display: flex;

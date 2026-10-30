@@ -239,6 +239,14 @@ describe("workspace controls", () => {
     expect(body).toContain('aria-label="Editor font" aria-expanded="false"');
     expect(body).not.toContain("<select");
   });
+  it("declares icon mask URLs inline so bundled CSS cannot rebase them", () => {
+    const { body } = render(App);
+    for (const icon of ["computer", "dark_mode", "light_mode"]) {
+      expect(body).toContain(
+        `mask: url(&quot;${import.meta.env.BASE_URL}icons/material/${icon}.svg&quot;) center / contain no-repeat`,
+      );
+    }
+  });
   it("does not apply app button sizing to embedded editor controls", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
     expect(css).toMatch(
