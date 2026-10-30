@@ -51,6 +51,9 @@
   let suppressEditorCallback = false;
   let codeEditor: InstanceType<typeof JSONEditor>;
   let treeEditor: InstanceType<typeof JSONEditor>;
+  let treeTimer: number | undefined;
+  let treeFrame: number | undefined;
+  let treeGeneration = 0;
 
   export function applyPatch(operations: JSONPatchDocument): string {
     const baseSource = sourceVersion;
@@ -61,6 +64,7 @@
       suppressEditorCallback = false;
     }
     const next = applyTreePatch(baseSource, operations);
+    if (next !== baseSource) cancelTreeOperation();
     const selection = fallbackSelection(
       state.selection.tree,
       next,
@@ -74,6 +78,7 @@
   }
 
   $: if (state.source !== sourceVersion) {
+    cancelTreeOperation();
     sourceVersion = state.source;
     code = { text: state.source };
     tree = { text: state.source };
@@ -98,12 +103,13 @@
       ? content.text
       : stringify(content.json)!;
     sourceVersion = text;
-    if (text !== state.source)
+    if (text !== state.source) {
+      cancelTreeOperation();
       onEdit({
         source: text,
         selection: { ...state.selection, tree: undefined },
       });
-    else echoCount++;
+    } else echoCount++;
     try {
       parse(text);
       tree = { text };
@@ -120,6 +126,7 @@
   ) {
     if (suppressEditorCallback || !status.patchResult) return;
     const text = applyTreePatch(sourceVersion, status.patchResult.redo);
+    if (text !== sourceVersion) cancelTreeOperation();
     tree = content;
     code = { text };
     sourceVersion = text;
@@ -188,6 +195,79 @@
           .split("/")
           .map((part) => part.replace(/~1/g, "/").replace(/~0/g, "~")),
       );
+  }
+
+  function cancelTreeOperation() {
+    treeGeneration++;
+    if (treeTimer !== undefined) clearTimeout(treeTimer);
+    if (treeFrame !== undefined) cancelAnimationFrame(treeFrame);
+    treeTimer = undefined;
+    treeFrame = undefined;
+    treeOperation = undefined;
+  }
+
+  let treeOperation: "Expanding" | "Collapsing" | undefined;
+
+  function expandAll() {
+    cancelTreeOperation();
+    treeOperation = "Expanding";
+    const generation = treeGeneration;
+    const paths: Array<Array<string | number>> = [[]];
+    const pending: Array<{
+      value: unknown;
+      path: Array<string | number>;
+    }> = [{ value: parse(state.source), path: [] }];
+
+    for (let index = 0; index < pending.length; index++) {
+      const { value, path } = pending[index];
+      const children = Array.isArray(value)
+        ? value.map((child, childIndex) => [childIndex, child] as const)
+        : value !== null && typeof value === "object"
+          ? Object.entries(value)
+          : [];
+      for (const [key, child] of children) {
+        const childPath = [...path, key];
+        const expandable = child !== null && typeof child === "object";
+        if (Array.isArray(value) || expandable) paths.push(childPath);
+        if (expandable) pending.push({ value: child, path: childPath });
+      }
+    }
+
+    let index = 0;
+    const expandBatch = () => {
+      if (generation !== treeGeneration) return;
+      const deadline = performance.now() + 8;
+      do {
+        treeEditor.expand(
+          paths[index],
+          (relativePath) => relativePath.length === 0,
+        );
+        index++;
+      } while (index < paths.length && performance.now() < deadline);
+      treeTimer =
+        index < paths.length
+          ? window.setTimeout(expandBatch, 0)
+          : window.setTimeout(() => {
+              if (generation === treeGeneration) treeOperation = undefined;
+              treeTimer = undefined;
+            }, 150);
+    };
+    treeTimer = window.setTimeout(expandBatch, 0);
+  }
+
+  function collapseAll() {
+    cancelTreeOperation();
+    treeOperation = "Collapsing";
+    const generation = treeGeneration;
+    treeFrame = requestAnimationFrame(() => {
+      if (generation !== treeGeneration) return;
+      treeEditor.collapse([], true);
+      treeFrame = undefined;
+      treeTimer = window.setTimeout(() => {
+        if (generation === treeGeneration) treeOperation = undefined;
+        treeTimer = undefined;
+      }, 150);
+    });
   }
 
   function resizeDivider(event: PointerEvent) {
@@ -274,12 +354,6 @@
     <div class="pane-header">
       <h2>Code</h2>
       <div class="pane-actions" data-processing={state.processing}>
-        <span class="cancel-slot">
-          {#if state.processing}<button
-              aria-label="Cancel processing"
-              onclick={onCancel}>Cancel</button
-            >{:else}<span aria-hidden="true"></span>{/if}
-        </span>
         <Tooltip label="Undo document change (Ctrl/⌘+Z)" align="end"
           ><button
             class="icon-button"
@@ -334,7 +408,8 @@
   <section
     aria-label="Tree pane"
     aria-busy={processingOperation === "format" ||
-      processingOperation === "minify"}
+      processingOperation === "minify" ||
+      treeOperation !== undefined}
     tabindex="0"
     hidden={view === "code"}
   >
@@ -346,7 +421,8 @@
             ><button
               class="icon-button"
               aria-label="Expand all"
-              onclick={() => treeEditor.expand([], () => true)}
+              disabled={processingOperation !== undefined}
+              onclick={expandAll}
               ><svg viewBox="0 -960 960 960" aria-hidden="true"
                 ><path
                   d="M480-80 240-320l57-57 183 183 183-183 57 57L480-80ZM298-584l-58-56 240-240 240 240-58 56-182-182-182 182Z"
@@ -357,7 +433,8 @@
             ><button
               class="icon-button"
               aria-label="Collapse all"
-              onclick={() => treeEditor.collapse([], true)}
+              disabled={processingOperation !== undefined}
+              onclick={collapseAll}
               ><svg viewBox="0 -960 960 960" aria-hidden="true"
                 ><path
                   d="m296-80-56-56 240-240 240 240-56 56-184-184L296-80Zm184-504L240-824l56-56 184 184 184-184 56 56-240 240Z"
@@ -434,18 +511,29 @@
       />
     </div>
   </section>
-  {#if processingOperation === "format" || processingOperation === "minify"}
-    <div
-      class="processing-overlay"
-      data-testid="processing-overlay"
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-    >
-      <span class="processing-spinner" aria-hidden="true"></span>
-      <span
-        >{processingOperation === "format" ? "Formatting" : "Minifying"}</span
+  {#if processingOperation === "format" || processingOperation === "minify" || treeOperation !== undefined}
+    <div class="processing-overlay" data-testid="processing-overlay">
+      <div
+        class="processing-card"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
       >
+        <span class="processing-spinner" aria-hidden="true"></span>
+        <span
+          >{processingOperation === "format"
+            ? "Formatting"
+            : processingOperation === "minify"
+              ? "Minifying"
+              : treeOperation}</span
+        >
+        <button
+          class="processing-cancel"
+          onclick={() =>
+            treeOperation !== undefined ? cancelTreeOperation() : onCancel()}
+          >Cancel</button
+        >
+      </div>
     </div>
   {/if}
 </div>

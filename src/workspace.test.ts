@@ -277,7 +277,7 @@ describe("workspace controls", () => {
       /aria-label="Collapse all"[\s\S]*?viewBox="0 -960 960 960"[\s\S]*?m296-80-56-56 240-240 240 240-56 56-184-184L296-80/,
     );
   });
-  it("bounds the editor and keeps processing cancellation in the pane toolbar", () => {
+  it("bounds the editor and keeps the processing card clickable", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
     expect(css).toMatch(/\.workspace\s*\{[^}]*height: 100dvh/);
     expect(css).toMatch(/\.panes\s*\{[^}]*min-height: 0/);
@@ -286,24 +286,22 @@ describe("workspace controls", () => {
       /\.panes\s*\{[^}]*grid-template-rows: minmax\(0, 1fr\)/,
     );
     expect(css).not.toMatch(/\.pending-actions\s*\{[^}]*position: absolute/);
-    expect(
-      readFileSync(
-        new URL("./lib/EditorPanes.svelte", import.meta.url),
-        "utf8",
-      ),
-    ).toContain('aria-label="Cancel processing"');
+    expect(css).toMatch(/\.processing-overlay\s*\{[^}]*pointer-events: none/);
+    expect(css).toMatch(/\.processing-card\s*\{[^}]*pointer-events: auto/);
   });
-  it("keeps cancel before history and provides recursive tree controls", () => {
+  it("places cancellation in the overlay card and provides recursive tree controls", () => {
     const panes = readFileSync(
       new URL("./lib/EditorPanes.svelte", import.meta.url),
       "utf8",
     );
-    expect(panes.indexOf('aria-label="Cancel processing"')).toBeLessThan(
-      panes.indexOf('aria-label="Undo document change"'),
-    );
+    expect(panes).toContain('class="processing-card"');
+    expect(panes).toContain('class="processing-cancel"');
+    expect(panes).toContain('role="status"');
+    expect(panes).toContain("cancelTreeOperation() : onCancel()");
     expect(panes).toContain('aria-label="Expand all"');
     expect(panes).toContain('aria-label="Collapse all"');
-    expect(panes).toContain("treeEditor.expand([], () => true)");
+    expect(panes).toContain("onclick={expandAll}");
+    expect(panes).toContain("cancelTreeOperation();");
     expect(panes).toContain("treeEditor.collapse([], true)");
   });
   it("keeps format actions in the toolbar layout while processing", () => {

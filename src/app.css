@@ -924,15 +924,6 @@ h2 small {
   flex-wrap: wrap;
   gap: 10px;
 }
-.cancel-slot,
-.cancel-slot > span {
-  display: inline-flex;
-  width: 76px;
-  flex: 0 0 76px;
-}
-.cancel-slot > span {
-  visibility: hidden;
-}
 .pane-actions button,
 .selection-actions button:not(.icon-button) {
   min-height: 40px;
@@ -994,20 +985,34 @@ h2 small {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
   pointer-events: none;
   background: color-mix(in srgb, var(--surface) 38%, transparent);
 }
-.processing-overlay > span:last-child {
+.processing-card {
   display: inline-flex;
   align-items: center;
-  min-height: 42px;
-  padding: 8px 14px;
+  gap: 12px;
+  min-height: 52px;
+  padding: 10px 12px 10px 16px;
   border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
-  box-shadow: 0 4px 16px #0003;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--surface), var(--raised));
+  box-shadow: 0 8px 28px #0004;
   font-weight: 600;
+  pointer-events: auto;
+}
+.processing-cancel {
+  min-height: 34px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.processing-cancel:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .processing-spinner {
   width: 18px;
