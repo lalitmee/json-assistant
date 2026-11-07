@@ -1095,3 +1095,42 @@ test("keyboard navigation reaches and operates the divider and source editor", a
     page.locator('[aria-label="Source pane"] .cm-content'),
   ).toBeFocused();
 });
+
+test("supports creating, switching, and closing document tabs with isolated content", async ({
+  page,
+}) => {
+  // Tab 1 initially has {}
+  await expect(
+    page.getByRole("tab", { name: /document\.json/ }),
+  ).toHaveAttribute("aria-selected", "true");
+  await source(page, '{"tab": 1}');
+
+  // Add a new tab via + button
+  await page.getByRole("button", { name: "New document" }).click();
+  await expect(
+    page.getByRole("tab", { name: /document-2\.json/ }),
+  ).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("source")).toHaveText("{}");
+
+  // Edit tab 2
+  await source(page, '{"tab": 2}');
+
+  // Switch back to tab 1
+  await page.getByRole("tab", { name: /document\.json/ }).click();
+  await expect(
+    page.getByRole("tab", { name: /document\.json/ }),
+  ).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("source")).toHaveText('{"tab": 1}');
+
+  // Close tab 2
+  page.on("dialog", (dialog) => dialog.accept());
+  await page.getByRole("tab", { name: /document-2\.json/ }).click();
+  await page.getByRole("button", { name: "Close document-2.json" }).click();
+  await expect(page.getByRole("tab", { name: /document-2\.json/ })).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole("tab", { name: /document\.json/ }),
+  ).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("source")).toHaveText('{"tab": 1}');
+});

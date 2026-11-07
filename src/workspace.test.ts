@@ -167,13 +167,13 @@ describe("workspace controls", () => {
   });
   it("places the workspace header flush with the viewport top", () => {
     const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
-    expect(css).toMatch(/\.workspace\s*\{[^}]*padding:\s*0 12px 12px/);
-    expect(css).toMatch(/\.workspace-header\s*\{[^}]*margin:\s*0 -12px/);
+    expect(css).toMatch(/\.workspace\s*\{[^}]*padding:\s*0/);
+    expect(css).toMatch(/\.workspace-header\s*\{[^}]*margin:\s*0/);
     expect(css).toMatch(
-      /@media \(max-width: 700px\)[\s\S]*?\.workspace\s*\{[^}]*padding:\s*0 10px 10px/,
+      /@media \(max-width: 700px\)[\s\S]*?\.workspace\s*\{[^}]*padding:\s*0/,
     );
     expect(css).toMatch(
-      /@media \(max-width: 700px\)[\s\S]*?\.workspace-header\s*\{[^}]*margin:\s*0 -10px[^}]*padding:\s*6px 10px/,
+      /@media \(max-width: 700px\)[\s\S]*?\.workspace-header\s*\{[^}]*margin:\s*0[^}]*padding:\s*6px 10px/,
     );
   });
   it("keeps the workspace view label and narrower toggle on one row", () => {
@@ -585,5 +585,20 @@ describe("workspace controls", () => {
     expect(css).toMatch(
       /\.panes \.jse-json-node\.jse-root \.jse-bracket\.jse-expanded \{[\s\S]*?padding-right: 3px/,
     );
+  });
+  it("renders the document tab bar with accessible ARIA tablist semantics", () => {
+    const { body } = render(App);
+    expect(body).toMatch(/role="tablist"[^>]*aria-label="JSON Documents"/);
+    expect(body).toMatch(/role="tab"[^>]*aria-selected="true"/);
+    expect(body).toMatch(/aria-label="New document"/);
+    expect(body).toMatch(/aria-label="Close document\.json"/);
+  });
+  it("renders fullscreen / zen mode toggle and compact pane layout", () => {
+    const { body } = render(App);
+    expect(body).toMatch(/aria-label="Fullscreen mode"/);
+    const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
+    expect(css).toContain('.workspace[data-zen="true"]');
+    expect(css).toMatch(/\.pane-header\s*\{[^}]*min-height:\s*36px/);
+    expect(css).toMatch(/\.selection-actions\s*\{[^}]*min-height:\s*32px/);
   });
 });

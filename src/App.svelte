@@ -3,6 +3,7 @@
   import SegmentedControl from "./lib/SegmentedControl.svelte";
   import PreferenceDropdown from "./lib/PreferenceDropdown.svelte";
   import KeyboardShortcuts from "./lib/KeyboardShortcuts.svelte";
+  import TabBar from "./lib/TabBar.svelte";
   import { onMount, tick } from "svelte";
   import EditorPanes from "./lib/EditorPanes.svelte";
   import type { JSONPatchDocument } from "immutable-json-patch";
@@ -17,6 +18,19 @@
     type Selection,
     type View,
   } from "./lib/document";
+  import {
+    addTab,
+    closeTab,
+    createWorkspace,
+    getActiveTab,
+    isWorkspaceDirty,
+    openInWorkspace,
+    renameTab,
+    selectTab,
+    updateTabDocument,
+    type TabState,
+    type WorkspaceState,
+  } from "./lib/tabs";
   import { createProcessor } from "./lib/processing";
   import { copyText, downloadText, readFile, subtreeSource } from "./lib/io";
   import type { ProcessRequest, ProcessResult } from "./lib/process";
@@ -28,8 +42,11 @@
     type Preferences,
   } from "./lib/preferences";
 
-  let document = createDocument();
+  let workspace: WorkspaceState = createWorkspace();
+  $: activeTab = getActiveTab(workspace);
+  $: document = activeTab.document;
   $: hasContent = document.revision > 0 && document.source.trim().length > 0;
+
   let view: View = "split";
   let viewChosen = false;
   let preferences: Preferences = { ...defaultPreferences };
@@ -37,6 +54,12 @@
   let settingsTrigger: HTMLButtonElement;
   let settingsHeading: HTMLHeadingElement;
   let shortcuts: InstanceType<typeof KeyboardShortcuts>;
+  let zenMode = false;
+
+  function toggleZen() {
+    zenMode = !zenMode;
+  }
+
   function changePreference(next: Partial<Preferences>) {
     preferences = { ...preferences, ...next };
     if (next.view) view = next.view;
@@ -46,6 +69,7 @@
       /* storage blocked */
     }
   }
+
   async function navigatePage(next: "workspace" | "settings") {
     if (
       typeof window.document.startViewTransition === "function" &&
@@ -63,20 +87,22 @@
       await tick();
     }
   }
+
   async function showSettings() {
     await navigatePage("settings");
     settingsHeading.focus();
   }
+
   async function showWorkspace() {
     await navigatePage("workspace");
     settingsTrigger.focus();
   }
+
   let panes: InstanceType<typeof EditorPanes>;
   let processor: ReturnType<typeof createProcessor>;
   let busy = false;
   let processingOperation: ProcessRequest["operation"] | undefined;
   let processId = 0;
-  let cancelledRevision = -1;
   let copied = "";
   let ioError = "";
   let fileInput: HTMLInputElement;
@@ -84,58 +110,87 @@
   let loadController: AbortController | undefined;
   let beforeUnloadHandler: ((event: BeforeUnloadEvent) => void) | undefined;
   let beforeUnloadListening = false;
+
   function syncBeforeUnload() {
     if (!beforeUnloadHandler) return;
-    if (isDirty(document) && !beforeUnloadListening) {
+    const dirty = isWorkspaceDirty(workspace);
+    if (dirty && !beforeUnloadListening) {
       window.addEventListener("beforeunload", beforeUnloadHandler);
       beforeUnloadListening = true;
-    } else if (!isDirty(document) && beforeUnloadListening) {
+    } else if (!dirty && beforeUnloadListening) {
       window.removeEventListener("beforeunload", beforeUnloadHandler);
       beforeUnloadListening = false;
     }
   }
-  $: if (document && beforeUnloadHandler) syncBeforeUnload();
+  $: if (workspace && beforeUnloadHandler) syncBeforeUnload();
+
   function edit(snapshot: { source: string; selection: Selection }) {
-    document = commit(document, snapshot);
+    workspace = updateTabDocument(workspace, activeTab.id, (doc) =>
+      commit(doc, snapshot),
+    );
   }
+
   function select(selection: Selection) {
-    document = { ...document, selection };
+    workspace = updateTabDocument(workspace, activeTab.id, (doc) => ({
+      ...doc,
+      selection,
+    }));
   }
+
   function history(direction: "undo" | "redo") {
-    document = direction === "undo" ? undo(document) : redo(document);
+    workspace = updateTabDocument(workspace, activeTab.id, (doc) =>
+      direction === "undo" ? undo(doc) : redo(doc),
+    );
   }
-  function applyResult(revision: number, result: ProcessResult) {
-    document = acceptAnalysis(document, result.analysis);
-    if (result.analysis.valid && result.source !== undefined)
-      document = acceptCompletion(document, {
-        revision,
-        source: result.source,
-      });
+
+  function applyResult(tabId: string, revision: number, result: ProcessResult) {
+    workspace = updateTabDocument(workspace, tabId, (doc) => {
+      let nextDoc = acceptAnalysis(doc, result.analysis);
+      if (result.analysis.valid && result.source !== undefined) {
+        nextDoc = acceptCompletion(nextDoc, {
+          revision,
+          source: result.source,
+        });
+      }
+      return nextDoc;
+    });
   }
+
   async function runOperation(
     operation: ProcessRequest["operation"],
+    targetTabId = activeTab.id,
   ): Promise<ProcessResult> {
+    const targetTab =
+      workspace.tabs.find((t) => t.id === targetTabId) ?? activeTab;
     const id = ++processId;
     const request = {
-      revision: document.revision,
-      source: document.source,
+      revision: targetTab.document.revision,
+      source: targetTab.document.source,
       operation,
     };
     busy = true;
     processingOperation = operation;
-    document = { ...document, processing: true };
+    workspace = updateTabDocument(workspace, targetTab.id, (doc) => ({
+      ...doc,
+      processing: true,
+    }));
+
     try {
       const result = await processor.run(request);
-      if (id === processId) applyResult(request.revision, result);
+      if (id === processId) applyResult(targetTab.id, request.revision, result);
       return result;
     } finally {
       if (id === processId) {
         busy = false;
         processingOperation = undefined;
-        document = { ...document, processing: false };
+        workspace = updateTabDocument(workspace, targetTab.id, (doc) => ({
+          ...doc,
+          processing: false,
+        }));
       }
     }
   }
+
   async function copyJson() {
     try {
       await copyText(document.source);
@@ -144,6 +199,7 @@
       ioError = (error as Error).message;
     }
   }
+
   async function copyPath(path: string) {
     try {
       await copyText(path);
@@ -153,6 +209,7 @@
       ioError = (error as Error).message;
     }
   }
+
   async function copySubtree(path: Array<string | number>) {
     if (
       document.analysis?.revision !== document.revision ||
@@ -169,8 +226,8 @@
       ioError = (error as Error).message;
     }
   }
+
   async function pasteDocument() {
-    const revision = document.revision;
     let text: string;
     try {
       text = await navigator.clipboard.readText();
@@ -179,21 +236,10 @@
         "Clipboard read failed. Check browser clipboard permissions and try again.";
       return;
     }
-    if (
-      document.revision !== revision &&
-      !window.confirm(
-        "The document changed while clipboard access was pending. Replace the current document?",
-      )
-    )
-      return;
-    if (
-      document.revision === revision &&
-      isDirty(document) &&
-      !window.confirm("Replace the unsaved document with clipboard contents?")
-    )
-      return;
-    replaceDocument(text);
+    workspace = openInWorkspace(workspace, [{ source: text }]);
+    ioError = "";
   }
+
   function replaceDocument(source: string) {
     loadId++;
     loadController?.abort();
@@ -202,33 +248,35 @@
     processor.cancel();
     busy = false;
     processingOperation = undefined;
-    cancelledRevision = -1;
-    document = { ...createDocument(source), revision: document.revision + 1 };
+    workspace = updateTabDocument(workspace, activeTab.id, (doc) => ({
+      ...createDocument(source),
+      revision: doc.revision + 1,
+    }));
+    workspace = {
+      ...workspace,
+      tabs: workspace.tabs.map((t) =>
+        t.id === activeTab.id ? { ...t, cancelledRevision: -1 } : t,
+      ),
+    };
     ioError = "";
   }
-  async function openFile(file: File) {
+
+  async function openFiles(files: FileList | File[]) {
     loadController?.abort();
     const controller = new AbortController(),
       id = ++loadId;
     loadController = controller;
-    const revision = document.revision;
+
     try {
-      const source = await readFile(file, controller.signal);
+      const items: Array<{ name: string; source: string; isFile: boolean }> =
+        [];
+      for (const file of Array.from(files)) {
+        const source = await readFile(file, controller.signal);
+        items.push({ name: file.name, source, isFile: true });
+      }
       if (id !== loadId) return;
-      if (
-        document.revision !== revision &&
-        !window.confirm(
-          "The document changed while the file was opening. Replace the current document?",
-        )
-      )
-        return;
-      if (
-        document.revision === revision &&
-        isDirty(document) &&
-        !window.confirm("Replace the unsaved document with this file?")
-      )
-        return;
-      replaceDocument(source);
+      workspace = openInWorkspace(workspace, items);
+      ioError = "";
     } catch (error) {
       if ((error as Error).name !== "AbortError")
         ioError = (error as Error).message;
@@ -236,6 +284,7 @@
       if (id === loadId) loadController = undefined;
     }
   }
+
   function download() {
     const source = document.source;
     if (
@@ -247,20 +296,25 @@
     )
       return;
     try {
-      downloadText(source, "document.json");
-      document = { ...document, exportedSource: source };
+      downloadText(source, activeTab.name || "document.json");
+      workspace = updateTabDocument(workspace, activeTab.id, (doc) => ({
+        ...doc,
+        exportedSource: source,
+      }));
       ioError = "Download initiated.";
     } catch {
       ioError = "Download could not be initiated.";
     }
   }
+
   $: if (
     processor &&
     !document.analysis &&
     !document.processing &&
-    cancelledRevision !== document.revision
+    activeTab.cancelledRevision !== document.revision
   )
-    void runOperation("analyze");
+    void runOperation("analyze", activeTab.id);
+
   function shortcut(event: KeyboardEvent) {
     if (event.isComposing) return;
     if (
@@ -293,13 +347,31 @@
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
       event.preventDefault();
       history(event.shiftKey ? "redo" : "undo");
+      return;
+    }
+    if (
+      event.key === "F11" ||
+      ((event.altKey || event.metaKey) &&
+        event.key.toLowerCase() === "z" &&
+        !event.ctrlKey)
+    ) {
+      event.preventDefault();
+      toggleZen();
+      return;
+    }
+    if (event.key === "Escape" && zenMode) {
+      event.preventDefault();
+      zenMode = false;
+      return;
     }
   }
+
   function chooseView(next: View) {
     view = next;
     viewChosen = true;
     changePreference({ view: next });
   }
+
   onMount(() => {
     try {
       preferences = loadPreferences(window.localStorage);
@@ -325,7 +397,7 @@
         panes.applyPatch(operations);
       (window as any).__editorGateProcess = runOperation;
       (window as any).__editorGateApplyResult = (result: ProcessResult) =>
-        applyResult(result.analysis.revision, result);
+        applyResult(activeTab.id, result.analysis.revision, result);
       (window as any).__editorGateParsePath = (path: string) =>
         panes.parsePath(path);
       (window as any).__benchmarkLoad = (source: string) => {
@@ -349,7 +421,7 @@
   data-appearance={preferences.appearance}
   data-theme={preferences.theme}
 >
-  <main class="workspace" hidden={page === "settings"}>
+  <main class="workspace" data-zen={zenMode} hidden={page === "settings"}>
     <header class="workspace-header">
       <div class="identity">
         <img
@@ -363,10 +435,9 @@
         </div>
       </div>
       <div class="document-meta">
-        <div class="document-name" title="document.json">
-          document.json <span
-            >{isDirty(document) ? "● Unsaved" : "· Unchanged"}</span
-          >
+        <div class="document-name" title={activeTab.name}>
+          {activeTab.name}
+          <span>{isDirty(document) ? "● Unsaved" : "· Unchanged"}</span>
         </div>
         <span
           class="status-badge"
@@ -391,10 +462,11 @@
           bind:this={fileInput}
           type="file"
           accept="application/json,.json"
+          multiple
           hidden
           onchange={(event) => {
-            const file = event.currentTarget.files?.[0];
-            if (file) void openFile(file);
+            const files = event.currentTarget.files;
+            if (files && files.length > 0) void openFiles(files);
             event.currentTarget.value = "";
           }}
         />
@@ -440,6 +512,23 @@
               ></button
             ></Tooltip
           >{/if}
+        <Tooltip
+          label={zenMode ? "Exit fullscreen (Esc)" : "Fullscreen mode (F11)"}
+          align="end"
+        >
+          <button
+            class="icon-button"
+            aria-label={zenMode ? "Exit fullscreen" : "Fullscreen mode"}
+            onclick={toggleZen}
+            ><svg viewBox="0 0 24 24" aria-hidden="true"
+              >{#if zenMode}<path
+                  d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"
+                />{:else}<path
+                  d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"
+                />{/if}</svg
+            ></button
+          >
+        </Tooltip>
         <Tooltip label="Open settings" align="end"
           ><button
             bind:this={settingsTrigger}
@@ -467,6 +556,19 @@
         </Tooltip>
       </div>
     </header>
+
+    <TabBar
+      tabs={workspace.tabs}
+      activeTabId={workspace.activeTabId}
+      {zenMode}
+      onToggleZen={toggleZen}
+      onSelectTab={(tabId) => (workspace = selectTab(workspace, tabId))}
+      onAddTab={() => (workspace = addTab(workspace))}
+      onCloseTab={(tabId) => (workspace = closeTab(workspace, tabId))}
+      onRenameTab={(tabId, name) =>
+        (workspace = renameTab(workspace, tabId, name))}
+    />
+
     {#if document.analysis?.mode !== "unavailable"}
       <EditorPanes
         bind:this={panes}
@@ -482,11 +584,21 @@
         onHistory={history}
         onCancel={() => {
           processId++;
-          cancelledRevision = document.revision;
+          workspace = {
+            ...workspace,
+            tabs: workspace.tabs.map((t) =>
+              t.id === activeTab.id
+                ? { ...t, cancelledRevision: document.revision }
+                : t,
+            ),
+          };
           processor.cancel();
           busy = false;
           processingOperation = undefined;
-          document = { ...document, processing: false };
+          workspace = updateTabDocument(workspace, activeTab.id, (doc) => ({
+            ...doc,
+            processing: false,
+          }));
         }}
         onCopyPath={copyPath}
         onCopySubtree={copySubtree}
@@ -505,7 +617,8 @@
             : processingOperation === "minify"
               ? "Minifying"
               : "Analyzing"
-          : cancelledRevision === document.revision && !document.analysis
+          : activeTab.cancelledRevision === document.revision &&
+              !document.analysis
             ? "Processing cancelled"
             : document.analysis
               ? document.analysis.valid

@@ -4,15 +4,21 @@
   let {
     label,
     align = "center",
+    placement = "bottom",
     children,
   }: {
     label: string;
     align?: "start" | "center" | "end";
+    placement?: "top" | "bottom";
     children: Snippet;
   } = $props();
 </script>
 
-<span class="tooltip-anchor" data-align={align}>
+<span
+  class="tooltip-anchor"
+  data-align={align}
+  {...placement !== "bottom" ? { "data-placement": placement } : {}}
+>
   {@render children()}
   <span class="tooltip-bubble" role="tooltip">{label}</span>
 </span>
@@ -61,6 +67,17 @@
     right: 0;
     transform: none;
     transform-origin: top right;
+  }
+  .tooltip-anchor[data-placement="top"] .tooltip-bubble {
+    top: auto;
+    bottom: calc(100% + 7px);
+    transform-origin: bottom center;
+  }
+  .tooltip-anchor[data-placement="top"][data-align="start"] .tooltip-bubble {
+    transform-origin: bottom left;
+  }
+  .tooltip-anchor[data-placement="top"][data-align="end"] .tooltip-bubble {
+    transform-origin: bottom right;
   }
   .tooltip-anchor:is(:hover, :focus-within) {
     z-index: 31;

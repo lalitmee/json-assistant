@@ -319,7 +319,7 @@
       const deadline = performance.now() + 8;
       do {
         treeEditor.expand(
-          paths[index],
+          paths[index] as any,
           (relativePath) => relativePath.length === 0,
         );
         index++;
