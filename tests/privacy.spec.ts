@@ -33,6 +33,12 @@ test("synthetic payload stays local and download contains exact source", async (
     });
   });
   const payload = JSON.stringify({ synthetic: canary });
+  const blank = page.getByRole("button", {
+    name: "or start with a blank document →",
+  });
+  if (await blank.isVisible()) {
+    await blank.click();
+  }
   const editor = page.locator('[aria-label="Source pane"] .cm-content');
   await editor.click();
   await editor.press("ControlOrMeta+a");

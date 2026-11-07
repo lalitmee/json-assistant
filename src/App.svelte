@@ -23,6 +23,7 @@
     closeTab,
     createWorkspace,
     getActiveTab,
+    isUntouchedDefaultTab,
     isWorkspaceDirty,
     openInWorkspace,
     renameTab,
@@ -31,6 +32,7 @@
     type TabState,
     type WorkspaceState,
   } from "./lib/tabs";
+  import WelcomeHero from "./lib/WelcomeHero.svelte";
   import { createProcessor } from "./lib/processing";
   import { copyText, downloadText, readFile, subtreeSource } from "./lib/io";
   import type { ProcessRequest, ProcessResult } from "./lib/process";
@@ -45,7 +47,14 @@
   let workspace: WorkspaceState = createWorkspace();
   $: activeTab = getActiveTab(workspace);
   $: document = activeTab.document;
-  $: hasContent = document.revision > 0 && document.source.trim().length > 0;
+  $: hasContent =
+    (!isUntouchedDefaultTab(activeTab) || dismissedWelcome) &&
+    document.source.trim().length > 0;
+  let dismissedWelcome = false;
+  $: showWelcome =
+    workspace.tabs.length === 1 &&
+    isUntouchedDefaultTab(activeTab) &&
+    !dismissedWelcome;
 
   let view: View = "split";
   let viewChosen = false;
@@ -422,7 +431,7 @@
   data-theme={preferences.theme}
 >
   <main class="workspace" data-zen={zenMode} hidden={page === "settings"}>
-    <header class="workspace-header">
+    <header class="workspace-header" hidden={showWelcome}>
       <div class="identity">
         <img
           class="brand-mark"
@@ -557,104 +566,118 @@
       </div>
     </header>
 
-    <TabBar
-      tabs={workspace.tabs}
-      activeTabId={workspace.activeTabId}
-      {zenMode}
-      onToggleZen={toggleZen}
-      onSelectTab={(tabId) => (workspace = selectTab(workspace, tabId))}
-      onAddTab={() => (workspace = addTab(workspace))}
-      onCloseTab={(tabId) => (workspace = closeTab(workspace, tabId))}
-      onRenameTab={(tabId, name) =>
-        (workspace = renameTab(workspace, tabId, name))}
-    />
-
-    {#if document.analysis?.mode !== "unavailable"}
-      <EditorPanes
-        bind:this={panes}
-        state={document}
-        {hasContent}
-        {view}
-        theme={preferences.theme}
-        {processingOperation}
-        font={preferences.font}
-        animatedIndentGuides={preferences.animatedIndentGuides}
-        onEdit={edit}
-        onSelection={select}
-        onHistory={history}
-        onCancel={() => {
-          processId++;
-          workspace = {
-            ...workspace,
-            tabs: workspace.tabs.map((t) =>
-              t.id === activeTab.id
-                ? { ...t, cancelledRevision: document.revision }
-                : t,
-            ),
-          };
-          processor.cancel();
-          busy = false;
-          processingOperation = undefined;
-          workspace = updateTabDocument(workspace, activeTab.id, (doc) => ({
-            ...doc,
-            processing: false,
-          }));
-        }}
-        onCopyPath={copyPath}
-        onCopySubtree={copySubtree}
-        onFormat={() => void runOperation("format")}
-        onMinify={() => void runOperation("minify")}
+    {#if showWelcome}
+      <WelcomeHero
+        onOpenFile={() => fileInput.click()}
+        onPaste={pasteDocument}
+        onStartBlank={() => (dismissedWelcome = true)}
+        onDropFiles={(files) => void openFiles(files)}
       />
-    {:else}<p role="status">
-        Inspection unavailable: {document.analysis.diagnostics[0]?.message}.
-        Source export remains available.
-      </p>{/if}
-    <section aria-label="Document status">
-      <p>
-        {document.processing
-          ? processingOperation === "format"
-            ? "Formatting"
-            : processingOperation === "minify"
-              ? "Minifying"
-              : "Analyzing"
-          : activeTab.cancelledRevision === document.revision &&
-              !document.analysis
-            ? "Processing cancelled"
-            : document.analysis
-              ? document.analysis.valid
-                ? "Valid JSON"
-                : "Invalid JSON"
-              : "Analyzing"} · {document.analysis?.bytes ??
-          new TextEncoder().encode(document.source).length} UTF-8 bytes · {isDirty(
-          document,
-        )
-          ? "Unsaved changes"
-          : "Unchanged"}
-      </p>
-      {#if document.analysis?.diagnostics[0]}<p data-testid="diagnostic">
-          {document.analysis.diagnostics[0].kind === "duplicate"
-            ? "Duplicate key"
-            : "Invalid JSON"} at {document.analysis.diagnostics[0]
-            .line}:{document.analysis.diagnostics[0].column}: {document.analysis
-            .diagnostics[0].message}
+    {/if}
+
+    <div class="workbench-wrapper" hidden={showWelcome}>
+      <TabBar
+        tabs={workspace.tabs}
+        activeTabId={workspace.activeTabId}
+        {zenMode}
+        onToggleZen={toggleZen}
+        onSelectTab={(tabId) => (workspace = selectTab(workspace, tabId))}
+        onAddTab={() => {
+          dismissedWelcome = true;
+          workspace = addTab(workspace);
+        }}
+        onCloseTab={(tabId) => (workspace = closeTab(workspace, tabId))}
+        onRenameTab={(tabId, name) =>
+          (workspace = renameTab(workspace, tabId, name))}
+      />
+
+      {#if document.analysis?.mode !== "unavailable"}
+        <EditorPanes
+          bind:this={panes}
+          state={document}
+          {hasContent}
+          {view}
+          theme={preferences.theme}
+          {processingOperation}
+          font={preferences.font}
+          animatedIndentGuides={preferences.animatedIndentGuides}
+          onEdit={edit}
+          onSelection={select}
+          onHistory={history}
+          onCancel={() => {
+            processId++;
+            workspace = {
+              ...workspace,
+              tabs: workspace.tabs.map((t) =>
+                t.id === activeTab.id
+                  ? { ...t, cancelledRevision: document.revision }
+                  : t,
+              ),
+            };
+            processor.cancel();
+            busy = false;
+            processingOperation = undefined;
+            workspace = updateTabDocument(workspace, activeTab.id, (doc) => ({
+              ...doc,
+              processing: false,
+            }));
+          }}
+          onCopyPath={copyPath}
+          onCopySubtree={copySubtree}
+          onFormat={() => void runOperation("format")}
+          onMinify={() => void runOperation("minify")}
+        />
+      {:else}<p role="status">
+          Inspection unavailable: {document.analysis.diagnostics[0]?.message}.
+          Source export remains available.
         </p>{/if}
-      <p>
-        Local processing only · no recovery · {document.analysis?.mode ===
-        "unavailable"
-          ? "source export only; inspection unavailable"
-          : document.analysis?.valid
-            ? "edit and inspect"
-            : "edit only; inspection unavailable"}
-      </p>
-      {#if copied}<output>Copied {copied}.</output>{/if}
-      {#if ioError}<p role="alert">{ioError}</p>{/if}
-      {#if document.analysis?.revision === document.revision && !document.analysis.valid}<p
-          role="status"
-        >
-          Warning: invalid JSON draft; Download exports the exact raw source,
-          including invalid content.
-        </p>{/if}
-    </section>
+      <section aria-label="Document status">
+        <p>
+          {document.processing
+            ? processingOperation === "format"
+              ? "Formatting"
+              : processingOperation === "minify"
+                ? "Minifying"
+                : "Analyzing"
+            : activeTab.cancelledRevision === document.revision &&
+                !document.analysis
+              ? "Processing cancelled"
+              : document.analysis
+                ? document.analysis.valid
+                  ? "Valid JSON"
+                  : "Invalid JSON"
+                : "Analyzing"} · {document.analysis?.bytes ??
+            new TextEncoder().encode(document.source).length} UTF-8 bytes · {isDirty(
+            document,
+          )
+            ? "Unsaved changes"
+            : "Unchanged"}
+        </p>
+        {#if document.analysis?.diagnostics[0]}<p data-testid="diagnostic">
+            {document.analysis.diagnostics[0].kind === "duplicate"
+              ? "Duplicate key"
+              : "Invalid JSON"} at {document.analysis.diagnostics[0]
+              .line}:{document.analysis.diagnostics[0].column}: {document
+              .analysis.diagnostics[0].message}
+          </p>{/if}
+        <p>
+          Local processing only · no recovery · {document.analysis?.mode ===
+          "unavailable"
+            ? "source export only; inspection unavailable"
+            : document.analysis?.valid
+              ? "edit and inspect"
+              : "edit only; inspection unavailable"}
+        </p>
+        {#if copied}<output>Copied {copied}.</output>{/if}
+        {#if ioError}<p role="alert">{ioError}</p>{/if}
+        {#if document.analysis?.revision === document.revision && !document.analysis.valid}<p
+            role="status"
+          >
+            Warning: invalid JSON draft; Download exports the exact raw source,
+            including invalid content.
+          </p>{/if}
+      </section>
+    </div>
     <pre data-testid="source">{document.source}</pre>
     <output data-testid="revision" hidden>{document.revision}</output>
   </main>

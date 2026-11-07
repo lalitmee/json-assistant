@@ -86,7 +86,7 @@ describe("workspace controls", () => {
     expect(html).toContain("<title>JSON Assistant</title>");
     expect(readme).toMatch(/<h1>JSON Assistant<\/h1>/);
   });
-  it("groups filename and status and uses the same logo asset in both headers", () => {
+  it("groups filename and status and uses the same logo asset across views", () => {
     const { body } = render(App);
     expect(body).toMatch(
       /class="document-meta"[\s\S]*document\.json[\s\S]*class="status-badge"/,
@@ -95,7 +95,7 @@ describe("workspace controls", () => {
       body.match(
         new RegExp(`src="${import.meta.env.BASE_URL}logo\\.svg"`, "g"),
       ),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
     expect(body).toMatch(/aria-label="Open settings"[^>]*><svg/);
     expect(body).toMatch(
       /aria-label="Undo document change"[\s\S]*role="tooltip"[^>]*>Undo document change/,

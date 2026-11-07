@@ -1,7 +1,22 @@
 import { expect, test, type Page } from "@playwright/test";
 import { parse } from "lossless-json";
 
+async function chooseView(page: Page, view: "Code" | "Tree" | "Split") {
+  await page.getByRole("button", { name: "Open settings" }).click();
+  await page
+    .getByRole("group", { name: "Workspace view" })
+    .getByRole("button", { name: view, exact: true })
+    .click();
+  await page.getByRole("button", { name: "Back to workspace" }).click();
+}
+
 async function source(page: Page, text: string) {
+  const blank = page.getByRole("button", {
+    name: "or start with a blank document →",
+  });
+  if (await blank.isVisible()) {
+    await blank.click();
+  }
   const code = page.locator('[aria-label="Source pane"] .cm-content');
   await code.click();
   await code.press("ControlOrMeta+a");
@@ -50,13 +65,13 @@ test("shared chronological history", async ({ page }) => {
   await changeSibling(page);
   await expect(page.getByTestId("source")).toContainText("after");
   const edited = await page.getByTestId("source").textContent();
-  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await page.getByRole("button", { name: /Undo/i }).click();
   await expect(page.getByTestId("source")).toHaveText('{"sibling":"before"}');
   await page
     .locator('[aria-label="Source pane"] .cm-content')
     .press("ControlOrMeta+z");
   await expect(page.getByTestId("source")).toHaveText("{}");
-  await page.getByRole("button", { name: "Redo", exact: true }).click();
+  await page.getByRole("button", { name: /Redo/i }).click();
   const tree = page.getByRole("region", { name: "Tree pane" });
   await tree
     .getByRole("button", { name: /Expand or collapse this object/ })
@@ -143,8 +158,8 @@ test("view changes preserve selection, and deleting a selected child selects its
   const child = page.getByRole("button", { name: "value", exact: true });
   await child.click();
   await expect(page.getByTestId("tree-selection")).toContainText("parent");
-  await page.getByRole("button", { name: "Code", exact: true }).click();
-  await page.getByRole("button", { name: "Tree", exact: true }).click();
+  await chooseView(page, "Code");
+  await chooseView(page, "Tree");
   await expect(page.getByTestId("tree-selection")).toContainText("parent");
   await child.click({ button: "right" });
   const menu = page.getByRole("menu");
@@ -277,6 +292,12 @@ test("programmatic pane synchronization does not create echo transactions", asyn
 test("synthetic composition sequence keeps composed text and does not hijack undo", async ({
   page,
 }) => {
+  const blank = page.getByRole("button", {
+    name: "or start with a blank document →",
+  });
+  if (await blank.isVisible()) {
+    await blank.click();
+  }
   const editor = page.locator('[aria-label="Source pane"] .cm-content');
   await editor.focus();
   await editor.evaluate((element) => {

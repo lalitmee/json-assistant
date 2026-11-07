@@ -1,6 +1,16 @@
 import { expect, test, type Page } from "@playwright/test";
 
+async function ensureWorkbench(page: Page) {
+  const blank = page.getByRole("button", {
+    name: "or start with a blank document →",
+  });
+  if (await blank.isVisible()) {
+    await blank.click();
+  }
+}
+
 async function source(page: Page, text: string) {
+  await ensureWorkbench(page);
   const editor = page.locator('[aria-label="Source pane"] .cm-content');
   await editor.click();
   await editor.press("ControlOrMeta+a");
@@ -19,6 +29,12 @@ async function chooseView(page: Page, view: "Code" | "Tree" | "Split") {
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
+  const blank = page.getByRole("button", {
+    name: /start with a blank document/i,
+  });
+  if (await blank.isVisible()) {
+    await blank.click();
+  }
 });
 
 test("settings layout uses tighter spacing", async ({ page }) => {
@@ -159,7 +175,7 @@ test("beforeunload warning tracks the dirty baseline", async ({ page }) => {
   expect(await wasPrevented()).toBe(false);
   await source(page, '{"dirty":true}');
   expect(await wasPrevented()).toBe(true);
-  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await page.getByRole("button", { name: /Undo/i }).click();
   expect(await wasPrevented()).toBe(false);
 });
 

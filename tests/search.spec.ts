@@ -4,6 +4,10 @@ test("Tree search reveals collapsed fields, keeps focus, and restores Tree on Es
   page,
 }) => {
   await page.goto("/");
+  const blank = page.getByRole("button", {
+    name: "or start with a blank document →",
+  });
+  if (await blank.isVisible()) await blank.click();
   await page.evaluate(() =>
     (window as any).__benchmarkLoad('{"outer":{"name":"cat cat"}}'),
   );
@@ -38,6 +42,10 @@ test("Tree replace all synchronizes both panes with one shared undo", async ({
   page,
 }) => {
   await page.goto("/");
+  const blank = page.getByRole("button", {
+    name: "or start with a blank document →",
+  });
+  if (await blank.isVisible()) await blank.click();
   const original = '{"cat":{"name":"cat cat"}}';
   await page.evaluate(
     (source) => (window as any).__benchmarkLoad(source),
@@ -71,6 +79,10 @@ test("Tree replacement rejects key collisions and type changes without editing",
   page,
 }) => {
   await page.goto("/");
+  const blank = page.getByRole("button", {
+    name: "or start with a blank document →",
+  });
+  if (await blank.isVisible()) await blank.click();
   const original = '{"cat":12,"dog":2}';
   await page.evaluate(
     (source) => (window as any).__benchmarkLoad(source),
@@ -100,6 +112,10 @@ test("Tree search history restores drafts and stays separate from Code", async (
   page,
 }) => {
   await page.goto("/");
+  const blank = page.getByRole("button", {
+    name: "or start with a blank document →",
+  });
+  if (await blank.isVisible()) await blank.click();
   await page.evaluate(() => (window as any).__benchmarkLoad('{"a":"cat dog"}'));
   await page
     .getByRole("button", { name: "Search fields", exact: true })
@@ -136,6 +152,10 @@ test("global find opens source search from the header and help restores focus", 
   page,
 }) => {
   await page.goto("/");
+  const blank = page.getByRole("button", {
+    name: "or start with a blank document →",
+  });
+  if (await blank.isVisible()) await blank.click();
   const help = page.getByRole("button", {
     name: "Keyboard shortcuts",
     exact: true,
@@ -163,6 +183,10 @@ test("query changes never publish a completed zero count while counting", async 
   page,
 }) => {
   await page.goto("/");
+  const blank = page.getByRole("button", {
+    name: "or start with a blank document →",
+  });
+  if (await blank.isVisible()) await blank.click();
   const states = await page.evaluate(async () => {
     // Exercise the real controller without relying on browser paint timing.
     const viewModule = "/node_modules/@codemirror/view/dist/index.js";
@@ -207,6 +231,10 @@ test("source search can replace one match and undo it as one document edit", asy
   page,
 }) => {
   await page.goto("/");
+  const blank = page.getByRole("button", {
+    name: "or start with a blank document →",
+  });
+  if (await blank.isVisible()) await blank.click();
   const editor = page.locator('[aria-label="Source pane"] .cm-content');
   await editor.click();
   await editor.press("ControlOrMeta+a");
@@ -233,6 +261,10 @@ test("replace all is one undoable edit and reports its replacement count", async
   page,
 }) => {
   await page.goto("/");
+  const blank = page.getByRole("button", {
+    name: "or start with a blank document →",
+  });
+  if (await blank.isVisible()) await blank.click();
   const editor = page.locator('[aria-label="Source pane"] .cm-content');
   await editor.click();
   await editor.press("ControlOrMeta+a");
@@ -258,6 +290,10 @@ test("source shortcuts open search and invalid regex is reported", async ({
   page,
 }) => {
   await page.goto("/");
+  const blank = page.getByRole("button", {
+    name: "or start with a blank document →",
+  });
+  if (await blank.isVisible()) await blank.click();
   const editor = page.locator('[aria-label="Source pane"] .cm-content');
   await editor.click();
   await editor.press("ControlOrMeta+f");
@@ -276,6 +312,10 @@ test("search controls follow the query and Enter keys navigate matches", async (
   page,
 }) => {
   await page.goto("/");
+  const blank = page.getByRole("button", {
+    name: "or start with a blank document →",
+  });
+  if (await blank.isVisible()) await blank.click();
   const editor = page.locator('[aria-label="Source pane"] .cm-content');
   await editor.click();
   await editor.press("ControlOrMeta+a");
@@ -356,6 +396,10 @@ test("Up and Down browse submitted search history and restore the draft", async 
   page,
 }) => {
   await page.goto("/");
+  const blank = page.getByRole("button", {
+    name: "or start with a blank document →",
+  });
+  if (await blank.isVisible()) await blank.click();
   const editor = page.locator('[aria-label="Source pane"] .cm-content');
   await editor.click();
   await editor.press("ControlOrMeta+a");
@@ -391,6 +435,10 @@ test("no-op replacement does not leave stale undo feedback", async ({
   page,
 }) => {
   await page.goto("/");
+  const blank = page.getByRole("button", {
+    name: "or start with a blank document →",
+  });
+  if (await blank.isVisible()) await blank.click();
   const editor = page.locator('[aria-label="Source pane"] .cm-content');
   await editor.click();
   await editor.press("ControlOrMeta+a");
@@ -418,6 +466,10 @@ test("preserve case follows lowercase, uppercase, and title-case matches", async
   page,
 }) => {
   await page.goto("/");
+  const blank = page.getByRole("button", {
+    name: "or start with a blank document →",
+  });
+  if (await blank.isVisible()) await blank.click();
   const editor = page.locator('[aria-label="Source pane"] .cm-content');
   await editor.click();
   await editor.press("ControlOrMeta+a");
@@ -436,6 +488,10 @@ test("preserve case keeps regex capture replacement syntax", async ({
   page,
 }) => {
   await page.goto("/");
+  const blank = page.getByRole("button", {
+    name: "or start with a blank document →",
+  });
+  if (await blank.isVisible()) await blank.click();
   const editor = page.locator('[aria-label="Source pane"] .cm-content');
   await editor.click();
   await editor.press("ControlOrMeta+a");
