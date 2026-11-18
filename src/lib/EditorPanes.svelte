@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, tick, flushSync } from "svelte";
+  import VirtualTree from "./VirtualTree.svelte";
   import SearchPanel from "./SearchPanel.svelte";
   import { createTreeSearch } from "./treeSearch";
   import Tooltip from "./Tooltip.svelte";
@@ -31,6 +32,7 @@
     type View,
   } from "./document";
 
+  export let treeEditing: boolean;
   export let state: DocumentState;
   export let hasContent: boolean;
   export let view: View;
@@ -50,7 +52,11 @@
   const parser = { parse, stringify };
   let split = 50;
   let code: Content = { text: state.source };
-  let tree: Content = { text: state.source };
+  let tree: Content = { text: "{}" };
+  let treeSource: string | undefined;
+  let virtualTree: InstanceType<typeof VirtualTree>;
+  $: virtual = state.analysis?.mode === "inspect" && state.analysis.valid;
+  $: editable = treeEditing && !unavailable && !virtual;
   let sourceVersion = state.source;
   let unavailable = false;
   let echoCount = 0;
@@ -64,7 +70,8 @@
     source: () => state.source,
     revision: () => state.revision,
     isProcessing: () => state.processing,
-    available: () => !unavailable,
+    available: () => !unavailable && !virtual,
+    canReplace: () => editable,
     apply: (operations) =>
       flushSync(() => {
         applyPatch(operations);
@@ -102,7 +109,8 @@
     sourceSearch?.open(replace);
   }
   export function openTreeSearch(replace = false) {
-    treeSearch.open(replace);
+    if (virtual) virtualTree?.focusSearch();
+    else treeSearch.open(replace && editable);
   }
 
   onMount(() => {
@@ -124,6 +132,7 @@
   });
 
   export function applyPatch(operations: JSONPatchDocument): string {
+    if (!editable || !treeEditor) return state.source;
     const baseSource = sourceVersion;
     suppressEditorCallback = true;
     try {
@@ -149,18 +158,15 @@
     cancelTreeOperation();
     sourceVersion = state.source;
     code = { text: state.source };
-    tree = { text: state.source };
-    try {
-      parse(state.source);
-      unavailable = false;
-    } catch {
-      unavailable = true;
-    }
     if (codeEditor) codeEditor.update(code);
-    if (treeEditor && !unavailable) treeEditor.update(tree);
   }
   $: unavailable =
     state.analysis?.revision !== state.revision || !state.analysis.valid;
+
+  $: if (!unavailable && !virtual && state.source !== treeSource) {
+    treeSource = state.source;
+    tree = { text: state.source };
+  }
 
   $: if (sourceSearch && state.revision !== observedSearchRevision) {
     observedSearchRevision = state.revision;
@@ -173,6 +179,8 @@
   }
   $: {
     unavailable;
+    virtual;
+    editable;
     state.processing;
     treeSearch.sync();
   }
@@ -193,13 +201,6 @@
         selection: { ...state.selection, tree: undefined },
       });
     } else echoCount++;
-    try {
-      parse(text);
-      tree = { text };
-      unavailable = false;
-    } catch {
-      unavailable = true;
-    }
   }
 
   function treeChanged(
@@ -207,10 +208,11 @@
     _previous: Content,
     status: OnChangeStatus,
   ) {
-    if (suppressEditorCallback || !status.patchResult) return;
+    if (!editable || suppressEditorCallback || !status.patchResult) return;
     const text = applyTreePatch(sourceVersion, status.patchResult.redo);
     if (text !== sourceVersion) cancelTreeOperation();
     tree = content;
+    treeSource = text;
     code = { text };
     sourceVersion = text;
     const selection = fallbackSelection(
@@ -315,7 +317,7 @@
 
     let index = 0;
     const expandBatch = () => {
-      if (generation !== treeGeneration) return;
+      if (generation !== treeGeneration || !treeEditor) return;
       const deadline = performance.now() + 8;
       do {
         treeEditor.expand(
@@ -340,7 +342,7 @@
     treeOperation = "Collapsing";
     const generation = treeGeneration;
     treeFrame = requestAnimationFrame(() => {
-      if (generation !== treeGeneration) return;
+      if (generation !== treeGeneration || !treeEditor) return;
       treeEditor.collapse([], true);
       treeFrame = undefined;
       treeTimer = window.setTimeout(() => {
@@ -463,11 +465,13 @@
         >
         {#if hasContent}<button
             class="format-action"
-            disabled={state.processing}
+            disabled={state.processing || state.analysis?.mode === "inspect"}
             onclick={onFormat}>Format</button
           ><button
             class="minify-action"
-            disabled={!state.analysis?.valid || state.processing}
+            disabled={!state.analysis?.valid ||
+              state.processing ||
+              state.analysis.mode === "inspect"}
             onclick={onMinify}>Minify</button
           >{/if}
       </div>
@@ -497,8 +501,9 @@
   >
     <div class="pane-header">
       <h2>Tree</h2>
+      {#if virtual}<span>Read-only · large document</span>{/if}
       <div class="pane-actions">
-        {#if hasContent && !unavailable}
+        {#if hasContent && !unavailable && !virtual}
           <Tooltip label="Expand all" align="end"
             ><button
               class="icon-button"
@@ -525,7 +530,7 @@
             ></Tooltip
           >
         {/if}
-        {#if hasContent && !unavailable}<Tooltip
+        {#if hasContent && !unavailable && !virtual}<Tooltip
             label="Search fields"
             align="end"
             ><button
@@ -544,58 +549,67 @@
     {#if unavailable}<p role="status">
         Tree unavailable: invalid or duplicate-key source
       </p>{/if}
-    <div class="selection-actions">
-      <span
-        >{state.selection.tree &&
-        state.selection.tree.type !== "text" &&
-        state.selection.tree.type !== "multi"
-          ? stringifyJSONPath(state.selection.tree.path)
-          : "Select a field to copy its path"}</span
-      >{#if hasContent && !unavailable && state.selection.tree && state.selection.tree.type !== "text" && state.selection.tree.type !== "multi"}<Tooltip
-          label="Copy path"
-          align="end"
-          ><button
-            class="icon-button"
-            aria-label="Copy path"
-            onclick={copySelectedPath}
-            ><svg viewBox="0 0 24 24" aria-hidden="true"
-              ><path
-                d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"
-              /></svg
-            ></button
-          ></Tooltip
-        >
-        <Tooltip label="Copy subtree" align="end"
-          ><button
-            class="icon-button"
-            aria-label="Copy subtree"
-            onclick={copySelectedSubtree}
-            ><svg viewBox="0 0 24 24" aria-hidden="true"
-              ><path
-                d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm-1 4 6 6v10c0 1.1-.9 2-2 2H7.99C6.89 23 6 22.1 6 21l.01-14c0-1.1.89-2 1.99-2h7zm-1 7h5.5L14 6.5V12z"
-              /></svg
-            ></button
-          ></Tooltip
-        >{/if}
-    </div>
-    <div class="tree-editor" hidden={unavailable} style="position: relative">
-      {#if treeSearchOpen}<SearchPanel
-          controller={treeSearch}
-          scope="tree"
-        />{/if}
-      <JSONEditor
-        bind:this={treeEditor}
-        content={tree}
-        selection={state.selection.tree}
-        mode={Mode.tree}
-        {parser}
-        mainMenuBar={false}
-        readOnly={unavailable}
-        onRenderContextMenu={contextMenu}
-        onChange={treeChanged}
-        onSelect={(value) => selected("tree", value)}
-      />
-    </div>
+    {#if virtual}
+      {#if view !== "code"}
+        {#key state.analysis}
+          <VirtualTree bind:this={virtualTree} source={state.source} />
+        {/key}
+      {/if}
+    {:else}
+      <div class="selection-actions">
+        <span
+          >{state.selection.tree &&
+          state.selection.tree.type !== "text" &&
+          state.selection.tree.type !== "multi"
+            ? stringifyJSONPath(state.selection.tree.path)
+            : "Select a field to copy its path"}</span
+        >{#if hasContent && !unavailable && !virtual && state.selection.tree && state.selection.tree.type !== "text" && state.selection.tree.type !== "multi"}<Tooltip
+            label="Copy path"
+            align="end"
+            ><button
+              class="icon-button"
+              aria-label="Copy path"
+              onclick={copySelectedPath}
+              ><svg viewBox="0 0 24 24" aria-hidden="true"
+                ><path
+                  d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"
+                /></svg
+              ></button
+            ></Tooltip
+          >
+          <Tooltip label="Copy subtree" align="end"
+            ><button
+              class="icon-button"
+              aria-label="Copy subtree"
+              onclick={copySelectedSubtree}
+              ><svg viewBox="0 0 24 24" aria-hidden="true"
+                ><path
+                  d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm-1 4 6 6v10c0 1.1-.9 2-2 2H7.99C6.89 23 6 22.1 6 21l.01-14c0-1.1.89-2 1.99-2h7zm-1 7h5.5L14 6.5V12z"
+                /></svg
+              ></button
+            ></Tooltip
+          >{/if}
+      </div>
+      <div class="tree-editor" hidden={unavailable} style="position: relative">
+        {#if treeSearchOpen}<SearchPanel
+            controller={treeSearch}
+            scope="tree"
+            allowReplace={editable}
+          />{/if}
+        <JSONEditor
+          bind:this={treeEditor}
+          content={tree}
+          selection={state.selection.tree}
+          mode={Mode.tree}
+          {parser}
+          mainMenuBar={false}
+          readOnly={!editable}
+          onRenderContextMenu={contextMenu}
+          onChange={treeChanged}
+          onSelect={(value) => selected("tree", value)}
+        />
+      </div>
+    {/if}
   </section>
   {#if processingOperation === "format" || processingOperation === "minify" || treeOperation !== undefined}
     <div class="processing-overlay" data-testid="processing-overlay">

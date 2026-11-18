@@ -215,6 +215,7 @@ export type TreeSearchHost = {
   revision(): number;
   isProcessing(): boolean;
   available(): boolean;
+  canReplace?(): boolean;
   apply(operations: JSONPatchDocument): void;
   reveal(match: TreeMatch): void;
   focus(): void;
@@ -327,7 +328,7 @@ export function createTreeSearch(host: TreeSearchHost): SearchController {
     open(replace = false) {
       if (destroyed || !host.available()) return;
       opened = true;
-      expanded ||= replace;
+      expanded ||= replace && host.canReplace?.() !== false;
       host.visibility(true);
       recount();
     },
@@ -356,7 +357,7 @@ export function createTreeSearch(host: TreeSearchHost): SearchController {
       }
     },
     expand(value) {
-      expanded = value;
+      expanded = value && host.canReplace?.() !== false;
       notify();
     },
     next(backward = false) {
@@ -379,6 +380,7 @@ export function createTreeSearch(host: TreeSearchHost): SearchController {
       if (
         destroyed ||
         !opened ||
+        host.canReplace?.() === false ||
         timer !== undefined ||
         host.isProcessing() ||
         !host.available() ||
@@ -434,6 +436,7 @@ export function createTreeSearch(host: TreeSearchHost): SearchController {
       recount();
     },
     sync() {
+      if (host.canReplace?.() === false) expanded = false;
       if (!host.available()) {
         cancel();
         matches = [];

@@ -338,11 +338,11 @@ describe("workspace controls", () => {
     expect(panes).toContain("data-processing={state.processing}");
     expect(panes).toContain('class="format-action"');
     expect(panes).toContain('class="minify-action"');
-    expect(panes).toContain(
-      'class="format-action"\n            disabled={state.processing}',
+    expect(panes).toMatch(
+      /class="format-action"\s+disabled=\{state\.processing[^}]*\}/,
     );
-    expect(panes).toContain(
-      'class="minify-action"\n            disabled={!state.analysis?.valid || state.processing}',
+    expect(panes).toMatch(
+      /class="minify-action"\s+disabled=\{!state\.analysis\?\.valid[^}]*state\.processing[^}]*\}/,
     );
     expect(css).not.toMatch(
       /\.pane-actions\[data-processing="true"\][^{]*\{[^}]*visibility:\s*hidden/,

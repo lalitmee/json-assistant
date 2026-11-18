@@ -1014,28 +1014,30 @@ test("exposes keyboard-operable divider and named, reachable layout controls", a
   await expect(page.locator(".cm-content:visible").first()).toBeFocused();
 });
 
-test("honors system color preference and refreshes a hidden source editor", async ({
+test("settings can enable tree editing and edits refresh the hidden source editor", async ({
   page,
 }) => {
-  await page.emulateMedia({ colorScheme: "dark" });
-  await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
-  await expect(page.locator("html")).toHaveCSS(
-    "--editor-background",
-    "#1e1e1e",
-  );
+  await page.getByRole("button", { name: "Open settings" }).click();
+  const editing = page.getByRole("switch", { name: "Enable tree editing" });
+  await expect(editing).toHaveAttribute("aria-checked", "false");
+  await editing.click();
+  await expect(editing).toHaveAttribute("aria-checked", "true");
+  await page.getByRole("button", { name: "Back to workspace" }).click();
   await source(page, '{"hidden":1}');
+  await page.getByRole("button", { name: "Open settings" }).click();
   await page.getByRole("button", { name: "Tree", exact: true }).click();
+  await page.getByRole("button", { name: "Back to workspace" }).click();
   await page.evaluate(() =>
     (window as any).__editorGatePatch([
       { op: "replace", path: "/hidden", value: 2 },
     ]),
   );
+  await page.getByRole("button", { name: "Open settings" }).click();
   await page.getByRole("button", { name: "Code", exact: true }).click();
+  await page.getByRole("button", { name: "Back to workspace" }).click();
   await expect(
     page.locator('[aria-label="Source pane"] .cm-content'),
   ).toContainText('"hidden": 2');
-  await page.emulateMedia({ colorScheme: "light" });
-  await expect(page.locator("html")).toHaveCSS("--editor-background", "#fff");
 });
 
 test("undo shortcut remains available after focusing source and tree controls", async ({

@@ -5,7 +5,12 @@
   let {
     controller,
     scope = "source",
-  }: { controller: SearchController; scope?: "source" | "tree" } = $props();
+    allowReplace = true,
+  }: {
+    controller: SearchController;
+    scope?: "source" | "tree";
+    allowReplace?: boolean;
+  } = $props();
   let history: string[] = [];
   let historyIndex = -1;
   let historyDraft = "";
@@ -84,21 +89,23 @@
 
 <div class="search-panel" role="search" aria-label={`Search in ${scope}`}>
   <div class="search-row">
-    <button
-      class="search-toggle"
-      type="button"
-      aria-label="Toggle replacement"
-      aria-expanded={state.expanded}
-      title="Toggle replacement"
-      onclick={() => controller.expand(!state.expanded)}
-      ><svg viewBox="0 0 16 16" aria-hidden="true"
-        ><path
-          d={state.expanded
-            ? "m3.15 5.65.7-.7L8 9.1l4.15-4.15.7.7-4.5 4.5h-.7z"
-            : "m5.65 3.15-.7.7L9.1 8l-4.15 4.15.7.7 4.5-4.5v-.7z"}
-        /></svg
-      ></button
-    >
+    {#if allowReplace}
+      <button
+        class="search-toggle"
+        type="button"
+        aria-label="Toggle replacement"
+        aria-expanded={state.expanded}
+        title="Toggle replacement"
+        onclick={() => controller.expand(!state.expanded)}
+        ><svg viewBox="0 0 16 16" aria-hidden="true"
+          ><path
+            d={state.expanded
+              ? "m3.15 5.65.7-.7L8 9.1l4.15-4.15.7.7-4.5 4.5h-.7z"
+              : "m5.65 3.15-.7.7L9.1 8l-4.15 4.15.7.7 4.5-4.5v-.7z"}
+          /></svg
+        ></button
+      >
+    {/if}
     <div class="input-field find-field">
       <input
         class="search-input"
@@ -199,7 +206,7 @@
       ></button
     >
   </div>
-  {#if state.expanded}
+  {#if allowReplace && state.expanded}
     <div class="replace-row">
       <div class="input-field replace-field">
         <input

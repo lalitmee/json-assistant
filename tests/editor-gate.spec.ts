@@ -1,3 +1,4 @@
+import { enableTreeEditing } from "./tree-editing";
 import { expect, test, type Page } from "@playwright/test";
 import { parse } from "lossless-json";
 
@@ -40,6 +41,7 @@ async function changeSibling(page: Page) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await enableTreeEditing(page);
   await page.goto("/");
 });
 

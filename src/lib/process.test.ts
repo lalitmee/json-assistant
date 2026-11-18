@@ -34,7 +34,7 @@ describe("processSource", () => {
       ],
     });
   });
-  it("refuses unmeasured inputs before full parsing and identifies their shape", () => {
+  it("keeps broad JSON available for inspection while enforcing byte and depth limits", () => {
     const broad = `[${Array(20).fill("0").join(",")}]`;
     const result = processSource(request(broad), {
       maxBytes: 8,
@@ -51,9 +51,18 @@ describe("processSource", () => {
       processSource(request('"' + "x".repeat(30) + '"'), { maxBytes: 8 })
         .analysis.mode,
     ).toBe("unavailable");
-    expect(processSource(request(broad), { maxNodes: 4 }).analysis.mode).toBe(
-      "unavailable",
-    );
+    expect(
+      processSource(request(broad), { maxNodes: 4 }).analysis,
+    ).toMatchObject({
+      mode: "inspect",
+      valid: true,
+    });
+    expect(
+      processSource(request(broad, "format"), { maxNodes: 4 }).source,
+    ).toBeUndefined();
+    expect(
+      processSource(request("[0,0,]"), { maxNodes: 4 }).analysis.valid,
+    ).toBe(false);
     expect(
       processSource(request("[[[[0]]]]"), { maxDepth: 2 }).analysis.mode,
     ).toBe("unavailable");

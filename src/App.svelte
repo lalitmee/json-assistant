@@ -601,6 +601,7 @@
           {processingOperation}
           font={preferences.font}
           animatedIndentGuides={preferences.animatedIndentGuides}
+          treeEditing={preferences.treeEditing}
           onEdit={edit}
           onSelection={select}
           onHistory={history}
@@ -665,7 +666,9 @@
           "unavailable"
             ? "source export only; inspection unavailable"
             : document.analysis?.valid
-              ? "edit and inspect"
+              ? document.analysis.mode === "inspect" || !preferences.treeEditing
+                ? "read-only tree"
+                : "edit and inspect"
               : "edit only; inspection unavailable"}
         </p>
         {#if copied}<output>Copied {copied}.</output>{/if}
@@ -812,6 +815,21 @@
             })}
         >
           <span>Animated indentation guides</span>
+          <span class="toggle-track" aria-hidden="true"
+            ><span class="toggle-thumb"></span></span
+          >
+        </button>
+      </section>
+      <section class="settings-card" aria-label="Tree preferences">
+        <button
+          type="button"
+          class="preference-toggle"
+          role="switch"
+          aria-checked={preferences.treeEditing}
+          onclick={() =>
+            changePreference({ treeEditing: !preferences.treeEditing })}
+        >
+          <span>Enable tree editing</span>
           <span class="toggle-track" aria-hidden="true"
             ><span class="toggle-thumb"></span></span
           >

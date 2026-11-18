@@ -2,10 +2,9 @@ import {
   applyEdits,
   createScanner,
   format,
-  parse as parseJsonc,
+  visit,
   printParseErrorCode,
 } from "jsonc-parser";
-import type { ParseErrorCode } from "jsonc-parser";
 import type { Analysis, Diagnostic } from "./document";
 
 export type ProcessRequest = {
@@ -21,13 +20,12 @@ export type ProcessLimits = {
 };
 
 const MAX_DEPTH = 256;
-const MAX_NODES = 100_000;
+const TREE_EDIT_TOKEN_LIMIT = 100_000;
 const K = {
   openBrace: 1,
   closeBrace: 2,
   openBracket: 3,
   closeBracket: 4,
-  comma: 5,
   lineComment: 12,
   blockComment: 13,
   lineBreak: 14,
@@ -46,7 +44,7 @@ export function processSource(
 ): ProcessResult {
   const { source, revision, operation } = request;
   const maxDepthLimit = limits.maxDepth ?? MAX_DEPTH;
-  const maxNodesLimit = limits.maxNodes ?? MAX_NODES;
+  const maxNodesLimit = limits.maxNodes ?? TREE_EDIT_TOKEN_LIMIT;
   const maxBytesLimit = limits.maxBytes ?? Infinity;
   const bytes = new TextEncoder().encode(source).length;
   const diagnostics: Diagnostic[] = [];
@@ -101,12 +99,13 @@ export function processSource(
       break;
     }
     if (![K.trivia, K.lineBreak, K.eof].includes(token)) {
-      tokens.push({ offset, length: scanner.getTokenLength() });
+      if (operation === "minify" && nodes < maxNodesLimit)
+        tokens.push({ offset, length: scanner.getTokenLength() });
       nodes++;
       if (token === K.openBrace || token === K.openBracket)
         maxDepth = Math.max(maxDepth, ++depth);
       if (token === K.closeBrace || token === K.closeBracket) depth--;
-      if (maxDepth > maxDepthLimit || nodes > maxNodesLimit) {
+      if (maxDepth > maxDepthLimit) {
         const p = position(source, offset);
         diagnostics.push({
           kind: "syntax",
@@ -119,59 +118,52 @@ export function processSource(
     }
   } while (token !== K.eof);
 
-  const errors: { error: ParseErrorCode; offset: number; length: number }[] =
-    [];
+  const keys: Set<string>[] = [];
+  let syntaxError: Diagnostic | undefined;
+  let duplicate: Diagnostic | undefined;
   if (!diagnostics.length)
-    parseJsonc(source, errors, {
-      disallowComments: true,
-      allowTrailingComma: false,
-      allowEmptyContent: false,
-    });
-  if (!diagnostics.length && errors.length) {
-    const { error, offset } = errors[0];
-    diagnostics.push({
-      kind: "syntax",
-      message: printParseErrorCode(error),
-      offset,
-      ...position(source, offset),
-    });
-  }
-  let valid = diagnostics.every((d) => d.kind !== "syntax");
-  if (valid) {
-    // Use a small structural walk over tokens for decoded keys and object scopes.
-    const stacks: Array<{ keys: Set<string>; expectKey: boolean }> = [];
-    for (const part of tokens) {
-      const kind = source[part.offset];
-      if (kind === "{") stacks.push({ keys: new Set(), expectKey: true });
-      else if (kind === "}") stacks.pop();
-      else if (kind === ",") {
-        const frame = stacks.at(-1);
-        if (frame && frame.keys) frame.expectKey = true;
-      } else if (kind === '"' && stacks.at(-1)?.expectKey) {
-        const key = JSON.parse(
-          source.slice(part.offset, part.offset + part.length),
-        ) as string;
-        const frame = stacks.at(-1)!;
-        if (frame.keys.has(key))
-          diagnostics.push({
-            kind: "duplicate",
-            message: `Duplicate key ${JSON.stringify(key)}`,
-            offset: part.offset,
-            ...position(source, part.offset),
-          });
-        frame.keys.add(key);
-        frame.expectKey = false;
-      } else if (kind === "[")
-        stacks.push({ keys: new Set(), expectKey: false });
-      else if (kind === "]") stacks.pop();
-      else if (kind === ":") {
-        /* next token is the property's value */
-      }
-    }
-  }
-  valid = diagnostics.length === 0;
-  const unavailable =
-    diagnostics[0]?.message.includes("safe processing limits") ?? false;
+    visit(
+      source,
+      {
+        onObjectBegin: () => {
+          keys.push(new Set());
+        },
+        onObjectEnd: () => {
+          keys.pop();
+        },
+        onObjectProperty: (key, offset, _length, line, column) => {
+          const scope = keys.at(-1)!;
+          if (!duplicate && scope.has(key))
+            duplicate = {
+              kind: "duplicate",
+              message: `Duplicate key ${JSON.stringify(key)}`,
+              offset,
+              line: line + 1,
+              column: column + 1,
+            };
+          scope.add(key);
+        },
+        onError: (code, offset, _length, line, column) => {
+          syntaxError ??= {
+            kind: "syntax",
+            message: printParseErrorCode(code),
+            offset,
+            line: line + 1,
+            column: column + 1,
+          };
+        },
+      },
+      {
+        disallowComments: true,
+        allowTrailingComma: false,
+        allowEmptyContent: false,
+      },
+    );
+  const error = syntaxError ?? duplicate;
+  if (error) diagnostics.push(error);
+  const valid = diagnostics.length === 0;
+  const unavailable = maxDepth > maxDepthLimit;
+  const inspect = nodes > maxNodesLimit;
   const analysis: Analysis = {
     revision,
     bytes,
@@ -179,9 +171,9 @@ export function processSource(
     diagnostics,
     depth: maxDepth,
     nodes,
-    mode: unavailable ? "unavailable" : "edit",
+    mode: unavailable ? "unavailable" : inspect ? "inspect" : "edit",
   };
-  if (operation === "analyze" || !valid) return { analysis };
+  if (operation === "analyze" || !valid || inspect) return { analysis };
   if (operation === "format")
     return {
       analysis,

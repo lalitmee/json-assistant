@@ -12,6 +12,7 @@ export type Preferences = {
     | "github";
   font: "system" | "jetbrains" | "iosevka" | "cascadia" | "fira";
   animatedIndentGuides: boolean;
+  treeEditing: boolean;
   view?: View;
 };
 
@@ -20,6 +21,7 @@ export const defaultPreferences: Preferences = {
   theme: "cobalt2",
   font: "system",
   animatedIndentGuides: false,
+  treeEditing: false,
 };
 
 const key = "json-workspace.preferences.v2";
@@ -56,6 +58,7 @@ export function loadPreferences(
           ? value.font
           : defaultPreferences.font,
         animatedIndentGuides: value.animatedIndentGuides === true,
+        treeEditing: value.treeEditing === true,
         ...(["split", "code", "tree"].includes(value.view)
           ? { view: value.view }
           : {}),
@@ -76,6 +79,7 @@ export function loadPreferences(
         ? old.font
         : defaultPreferences.font,
       animatedIndentGuides: false,
+      treeEditing: false,
       ...(["split", "code", "tree"].includes(old.view)
         ? { view: old.view }
         : {}),
@@ -89,7 +93,8 @@ export function savePreferences(
   storage: Pick<Storage, "setItem">,
   preferences: Preferences,
 ): void {
-  const { appearance, theme, font, animatedIndentGuides, view } = preferences;
+  const { appearance, theme, font, animatedIndentGuides, treeEditing, view } =
+    preferences;
   try {
     storage.setItem(
       key,
@@ -99,6 +104,7 @@ export function savePreferences(
         theme,
         font,
         animatedIndentGuides,
+        ...(treeEditing ? { treeEditing } : {}),
         ...(view ? { view } : {}),
       }),
     );

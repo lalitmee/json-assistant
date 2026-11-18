@@ -9,7 +9,7 @@ A browser-based workspace for inspecting and editing one JSON document at a time
 
 ## Features
 
-- Inspect and edit JSON in Code, Tree, or Split views; search source and tree fields.
+- Edit JSON in Code and browse or search it in Tree. Tree editing is off by default and can be enabled in Settings.
 - Open or paste a document, format or minify it, undo or redo edits, copy paths or subtrees, and download the source.
 - Choose editor fonts, color themes, and light/dark appearance.
 - Process documents in the browser. The host serves the app and its static assets; the app does not upload JSON documents to a backend.
@@ -32,11 +32,11 @@ A browser-based workspace for inspecting and editing one JSON document at a time
 
 ## Run locally
 
-Requires Node.js 22.12 or newer and Yarn.
+Requires Node.js 22.12 or newer and pnpm 10.24.0.
 
 ```sh
-yarn install --frozen-lockfile
-yarn dev
+pnpm install --frozen-lockfile
+pnpm dev
 ```
 
 Open the local URL printed by Vite. JSON documents remain in the current browser session; they are not automatically saved or recovered. Export important work before closing or refreshing the page.
@@ -44,16 +44,16 @@ Open the local URL printed by Vite. JSON documents remain in the current browser
 ## Development checks
 
 ```sh
-yarn check       # Svelte and TypeScript checks
-yarn test        # Unit tests
-yarn test:e2e    # Browser tests in Chromium and Firefox
-yarn build       # Production build
-yarn benchmark   # Generated browser fixtures; output is gitignored
+pnpm check       # Svelte and TypeScript checks
+pnpm test        # Unit tests
+pnpm test:e2e    # Browser tests in Chromium and Firefox
+pnpm build       # Production build
+pnpm benchmark   # Generated browser fixtures; output is gitignored
 ```
 
 ## Limits and privacy
 
-Processing is client-side; serving the site still requires normal requests for the app and its assets. The app has no account or cloud-document workflow, and does not automatically persist document content. Browser memory and responsiveness vary by device and document shape; benchmark sizes are test inputs, not quotas or support promises. The 1 MiB broad-array workflow is unsupported, and 100 MB benchmark cases crashed or timed out. See the [release verification](docs/verification/2026-10-17-release.md) for measurements and details. Do not treat the app as unlimited-size storage or the sole copy of important data.
+Processing is client-side; serving the site still requires normal requests for the app and its assets. The app has no account or cloud-document workflow, and does not automatically persist document content. Browser memory and responsiveness vary by device and document shape; benchmark sizes are test inputs, not quotas or support promises. Documents above 100,000 scanner tokens use a read-only tree that loads branches in pages and renders the visible rows. Formatting and minifying are unavailable in this mode. The viewer still parses the full source in a worker, and the 256-level nesting limit applies. See the [historical release verification](docs/verification/2026-10-17-release.md) for earlier browser measurements. Do not treat the app as unlimited-size storage or the sole copy of important data.
 
 ## Project documentation
 

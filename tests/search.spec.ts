@@ -1,3 +1,4 @@
+import { enableTreeEditing } from "./tree-editing";
 import { expect, test } from "@playwright/test";
 
 test("Tree search reveals collapsed fields, keeps focus, and restores Tree on Escape", async ({
@@ -19,6 +20,9 @@ test("Tree search reveals collapsed fields, keeps focus, and restores Tree on Es
     name: "Search in tree",
     exact: true,
   });
+  await expect(
+    panel.getByRole("button", { name: "Toggle replacement" }),
+  ).toHaveCount(0);
   const find = panel.getByRole("searchbox");
   await expect(find).toBeFocused();
   await tree.focus();
@@ -41,6 +45,7 @@ test("Tree search reveals collapsed fields, keeps focus, and restores Tree on Es
 test("Tree replace all synchronizes both panes with one shared undo", async ({
   page,
 }) => {
+  await enableTreeEditing(page);
   await page.goto("/");
   const blank = page.getByRole("button", {
     name: "or start with a blank document →",
@@ -78,6 +83,7 @@ test("Tree replace all synchronizes both panes with one shared undo", async ({
 test("Tree replacement rejects key collisions and type changes without editing", async ({
   page,
 }) => {
+  await enableTreeEditing(page);
   await page.goto("/");
   const blank = page.getByRole("button", {
     name: "or start with a blank document →",
